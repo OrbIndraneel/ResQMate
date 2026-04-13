@@ -28,7 +28,6 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Fetch user role from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (userDoc.exists()) {
@@ -39,7 +38,6 @@ export default function LoginPage() {
           router.push('/volunteer/dashboard');
         }
       } else {
-        // Fallback for users who might not have a profile yet
         router.push('/volunteer/dashboard');
       }
 
