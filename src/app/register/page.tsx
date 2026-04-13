@@ -12,13 +12,16 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const VOLUNTEER_SKILLS = [
-  "First Aid", "Nursing", "Heavy Lifting", "Logistics", "Driving", "Translation", "IT Support", "Cooking"
+  "First Aid", "Nursing", "Heavy Lifting", "Logistics", "Driving", 
+  "Translation", "IT Support", "Cooking", "Construction", 
+  "Counseling", "Security", "Search & Rescue", "Other"
 ];
 
 export default function RegisterPage() {
@@ -27,19 +30,28 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Volunteer Fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [profession, setProfession] = useState('');
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [proofBase64, setProofBase64] = useState<string | null>(null);
+  const [primarySkill, setPrimarySkill] = useState('');
+  const [otherSkillText, setOtherSkillText] = useState('');
+  const [selectedAdditionalSkills, setSelectedAdditionalSkills] = useState<string[]>([]);
+  const [volunteerProofBase64, setVolunteerProofBase64] = useState<string | null>(null);
+  
+  // NGO Fields
   const [orgName, setOrgName] = useState('');
+  const [orgLocation, setOrgLocation] = useState('');
+  const [orgProofBase64, setOrgProofBase64] = useState<string | null>(null);
+  
   const [role, setRole] = useState(initialRole);
   const router = useRouter();
   const { toast } = useToast();
 
   const isConfigMissing = !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'undefined';
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'volunteer' | 'ngo') => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.includes('jpeg') && !file.type.includes('jpg')) {
@@ -52,14 +64,15 @@ export default function RegisterPage() {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProofBase64(reader.result as string);
+        if (type === 'volunteer') setVolunteerProofBase64(reader.result as string);
+        else setOrgProofBase64(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const toggleSkill = (skill: string) => {
-    setSelectedSkills(prev => 
+  const toggleAdditionalSkill = (skill: string) => {
+    setSelectedAdditionalSkills(prev => 
       prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
     );
   };
@@ -72,20 +85,17 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isConfigMissing) {
-      toast({
-        variant: "destructive",
-        title: "Configuration Error",
-        description: "Firebase API keys are missing.",
-      });
+      toast({ variant: "destructive", title: "Configuration Error", description: "Firebase configuration is missing." });
       return;
     }
 
-    if (role === 'volunteer' && !proofBase64) {
-      toast({
-        variant: "destructive",
-        title: "Proof Required",
-        description: "Please upload a JPEG proof of your profession.",
-      });
+    if (role === 'volunteer' && !volunteerProofBase64) {
+      toast({ variant: "destructive", title: "Proof Required", description: "Please upload proof of your profession." });
+      return;
+    }
+
+    if (role === 'ngo' && !orgProofBase64) {
+      toast({ variant: "destructive", title: "Proof Required", description: "Please upload proof of NGO existence." });
       return;
     }
     
@@ -94,37 +104,46 @@ export default function RegisterPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const volunteerId = role === 'volunteer' ? generateVolunteerId() : null;
+      
+      const displayName = role === 'volunteer' ? `${firstName} ${lastName}` : orgName;
+      await updateProfile(user, { displayName });
 
-      await setDoc(doc(db, 'users', user.uid), {
+      const volunteerId = role === 'volunteer' ? generateVolunteerId() : null;
+      const finalPrimarySkill = primarySkill === 'Other' ? otherSkillText : primarySkill;
+
+      const userData = {
         uid: user.uid,
         email,
         role: role,
-        firstName: role === 'volunteer' ? firstName : '',
-        lastName: role === 'volunteer' ? lastName : '',
-        organizationName: role === 'ngo' ? orgName : '',
-        profession: role === 'volunteer' ? profession : '',
-        skills: role === 'volunteer' ? selectedSkills : [],
-        proofImage: role === 'volunteer' ? proofBase64 : null,
-        volunteerId: volunteerId,
-        verificationStatus: role === 'volunteer' ? 'pending' : 'verified',
         createdAt: new Date().toISOString(),
-      });
+        verificationStatus: 'pending',
+        ...(role === 'volunteer' ? {
+          firstName,
+          lastName,
+          profession,
+          primarySkill: finalPrimarySkill,
+          additionalSkills: selectedAdditionalSkills,
+          proofImage: volunteerProofBase64,
+          volunteerId: volunteerId,
+        } : {
+          organizationName: orgName,
+          location: orgLocation,
+          proofImage: orgProofBase64,
+        })
+      };
+
+      await setDoc(doc(db, 'users', user.uid), userData);
 
       toast({
-        title: "Account Created",
+        title: "Registration Successful",
         description: role === 'volunteer' 
-          ? `Welcome! Your ID ${volunteerId} is pending verification.` 
-          : "Welcome to ResQMate! Your profile is ready.",
+          ? `Welcome! Your ID ${volunteerId} is awaiting verification.` 
+          : "Your NGO profile has been created and is pending verification.",
       });
 
       router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Registration Failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "Registration Failed", description: error.message });
     } finally {
       setLoading(false);
     }
@@ -146,10 +165,8 @@ export default function RegisterPage() {
           {isConfigMissing && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Environment Keys Missing</AlertTitle>
-              <AlertDescription>
-                Please ensure you have added your Firebase keys to the .env file.
-              </AlertDescription>
+              <AlertTitle>Configuration Error</AlertTitle>
+              <AlertDescription>Firebase API keys are missing in the environment.</AlertDescription>
             </Alert>
           )}
 
@@ -174,18 +191,41 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="v-profession">Profession</Label>
-                  <Input id="v-profession" placeholder="e.g. Registered Nurse, Civil Engineer" required value={profession} onChange={(e) => setProfession(e.target.value)} />
+                  <Input id="v-profession" placeholder="e.g. Registered Nurse, Logistics Expert" required value={profession} onChange={(e) => setProfession(e.target.value)} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Primary Expertise</Label>
+                  <Select onValueChange={setPrimarySkill} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your main skill" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VOLUNTEER_SKILLS.map(skill => (
+                        <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {primarySkill === 'Other' && (
+                    <Input 
+                      className="mt-2" 
+                      placeholder="Please specify your skill" 
+                      required 
+                      value={otherSkillText}
+                      onChange={(e) => setOtherSkillText(e.target.value)}
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Key Skills</Label>
+                  <Label>Additional Skills</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {VOLUNTEER_SKILLS.map(skill => (
+                    {VOLUNTEER_SKILLS.filter(s => s !== 'Other').map(skill => (
                       <div key={skill} className="flex items-center space-x-2">
                         <Checkbox 
                           id={`skill-${skill}`} 
-                          checked={selectedSkills.includes(skill)}
-                          onCheckedChange={() => toggleSkill(skill)}
+                          checked={selectedAdditionalSkills.includes(skill)}
+                          onCheckedChange={() => toggleAdditionalSkill(skill)}
                         />
                         <label htmlFor={`skill-${skill}`} className="text-xs font-medium cursor-pointer">
                           {skill}
@@ -196,39 +236,36 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="v-proof">Proof of Profession (JPEG Format Only)</Label>
+                  <Label htmlFor="v-proof">Professional ID / Certification (JPEG)</Label>
                   <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
-                    <input 
-                      id="v-proof" 
-                      type="file" 
-                      accept="image/jpeg" 
-                      onChange={handleFileChange} 
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    {proofBase64 ? (
+                    <input id="v-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'volunteer')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    {volunteerProofBase64 ? (
                       <div className="flex items-center text-primary gap-2">
                         <CheckCircle2 className="h-8 w-8" />
-                        <span className="text-sm font-medium">Image Uploaded Successfully</span>
+                        <span className="text-sm font-medium">Document Uploaded</span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center text-muted-foreground gap-2">
                         <Upload className="h-8 w-8" />
-                        <span className="text-sm">Click or drag to upload JPEG</span>
+                        <span className="text-sm">Upload Professional Proof</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="v-email">Email Address</Label>
-                  <Input id="v-email" type="email" placeholder="alex@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="v-email">Email</Label>
+                    <Input id="v-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="v-password">Password</Label>
+                    <Input id="v-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="v-password">Password</Label>
-                  <Input id="v-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-                <Button type="submit" className="w-full bg-primary" disabled={loading || isConfigMissing}>
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Complete Registration"}
+                
+                <Button type="submit" className="w-full" disabled={loading || isConfigMissing}>
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as Volunteer"}
                 </Button>
               </form>
             </TabsContent>
@@ -237,29 +274,50 @@ export default function RegisterPage() {
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="n-org">Organization Name</Label>
-                  <Input id="n-org" placeholder="Red Cross, UNICEF, etc." required value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+                  <Input id="n-org" placeholder="e.g. Hope Relief International" required value={orgName} onChange={(e) => setOrgName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="n-email">Admin Email Address</Label>
-                  <Input id="n-email" type="email" placeholder="admin@org.org" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Label htmlFor="n-location">Headquarters / Main Location</Label>
+                  <Input id="n-location" placeholder="City, Country" required value={orgLocation} onChange={(e) => setOrgLocation(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="n-password">Password</Label>
-                  <Input id="n-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Label htmlFor="n-proof">Proof of NGO Existence (Registration/Charter JPEG)</Label>
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
+                    <input id="n-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'ngo')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    {orgProofBase64 ? (
+                      <div className="flex items-center text-secondary gap-2">
+                        <CheckCircle2 className="h-8 w-8" />
+                        <span className="text-sm font-medium">Registration Document Uploaded</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center text-muted-foreground gap-2">
+                        <Upload className="h-8 w-8" />
+                        <span className="text-sm">Upload NGO Certification</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Button type="submit" className="w-full bg-secondary" disabled={loading || isConfigMissing}>
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as NGO Admin"}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="n-email">Admin Email</Label>
+                    <Input id="n-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="n-password">Password</Label>
+                    <Input id="n-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading || isConfigMissing}>
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register NGO Admin"}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4 border-t pt-6">
-          <div className="text-sm text-center text-muted-foreground">
+        <CardFooter className="flex justify-center border-t pt-6">
+          <div className="text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline font-medium">
-              Log in here
-            </Link>
+            <Link href="/login" className="text-primary hover:underline font-medium">Log in here</Link>
           </div>
         </CardFooter>
       </Card>
