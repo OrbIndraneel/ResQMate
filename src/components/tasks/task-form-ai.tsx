@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -51,10 +52,20 @@ export function TaskFormAI() {
         location: location,
         requiredSkills: skills.split(',').map(s => s.trim()).filter(s => s)
       });
-      setDetailed(result.detailedDescription);
-      toast({ title: "AI Generated", description: "Task description has been expanded." });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to generate AI description." });
+      
+      if (result && result.detailedDescription) {
+        setDetailed(result.detailedDescription);
+        toast({ title: "AI Generated", description: "Task description has been expanded." });
+      } else {
+        throw new Error("No description returned from AI.");
+      }
+    } catch (error: any) {
+      console.error("AI Generation Error:", error);
+      toast({ 
+        variant: "destructive",
+        title: "AI Expansion Failed", 
+        description: error.message || "Ensure GOOGLE_GENAI_API_KEY is set in your .env file." 
+      });
     } finally {
       setGenerating(false);
     }
