@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -39,14 +38,13 @@ export default function NGODashboard() {
       }));
       setTasks(taskList);
       
-      // Basic stats calculation
       const activeCount = taskList.filter(t => t.status !== 'completed').length;
       const totalVolunteers = taskList.reduce((acc, t) => acc + (t.volunteersJoined || 0), 0);
       
       setStats({
         active: activeCount,
         volunteers: totalVolunteers,
-        completion: "85%", // Placeholder for real logic
+        completion: "85%",
         alerts: taskList.filter(t => t.urgency === 'emergency').length
       });
       
@@ -169,7 +167,7 @@ export default function NGODashboard() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                  <p className="text-sm font-bold">Role: NGO Admin</p>
-                 <p className="text-xs text-muted-foreground">Email: {user?.email}</p>
+                 <p className="text-xs text-muted-foreground">Account: {user?.email}</p>
               </div>
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/ngo/profile">Edit Organization Profile</Link>

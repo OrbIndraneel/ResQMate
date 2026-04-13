@@ -7,14 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, AlertCircle, Upload, CheckCircle2 } from 'lucide-react';
+import { Shield, Loader2, Upload, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -49,8 +48,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const isConfigMissing = !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'undefined';
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'volunteer' | 'ngo') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -84,11 +81,7 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isConfigMissing) {
-      toast({ variant: "destructive", title: "Configuration Error", description: "Firebase configuration is missing." });
-      return;
-    }
-
+    
     if (role === 'volunteer' && !volunteerProofBase64) {
       toast({ variant: "destructive", title: "Proof Required", description: "Please upload proof of your profession." });
       return;
@@ -111,6 +104,7 @@ export default function RegisterPage() {
       const volunteerId = role === 'volunteer' ? generateVolunteerId() : null;
       const finalPrimarySkill = primarySkill === 'Other' ? otherSkillText : primarySkill;
 
+      // Create detailed user document in Firestore (Acting as separate data tables via schema)
       const userData = {
         uid: user.uid,
         email,
@@ -125,6 +119,7 @@ export default function RegisterPage() {
           additionalSkills: selectedAdditionalSkills,
           proofImage: volunteerProofBase64,
           volunteerId: volunteerId,
+          points: 0,
         } : {
           organizationName: orgName,
           location: orgLocation,
@@ -162,14 +157,6 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isConfigMissing && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Configuration Error</AlertTitle>
-              <AlertDescription>Firebase API keys are missing in the environment.</AlertDescription>
-            </Alert>
-          )}
-
           <Tabs defaultValue={initialRole} onValueChange={setRole} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
@@ -264,7 +251,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={loading || isConfigMissing}>
+                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as Volunteer"}
                 </Button>
               </form>
@@ -281,13 +268,13 @@ export default function RegisterPage() {
                   <Input id="n-location" placeholder="City, Country" required value={orgLocation} onChange={(e) => setOrgLocation(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="n-proof">Proof of NGO Existence (Registration/Charter JPEG)</Label>
+                  <Label htmlFor="n-proof">Proof of NGO Existence (JPEG)</Label>
                   <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
                     <input id="n-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'ngo')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                     {orgProofBase64 ? (
                       <div className="flex items-center text-secondary gap-2">
                         <CheckCircle2 className="h-8 w-8" />
-                        <span className="text-sm font-medium">Registration Document Uploaded</span>
+                        <span className="text-sm font-medium">NGO Proof Uploaded</span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center text-muted-foreground gap-2">
@@ -307,7 +294,7 @@ export default function RegisterPage() {
                     <Input id="n-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading || isConfigMissing}>
+                <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register NGO Admin"}
                 </Button>
               </form>

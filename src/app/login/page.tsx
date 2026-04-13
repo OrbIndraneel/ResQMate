@@ -28,23 +28,26 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Authenticate and fetch role-specific data from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       
       if (userDoc.exists()) {
         const userData = userDoc.data();
+        toast({
+          title: "Signed In",
+          description: `Welcome back, ${userData.organizationName || userData.firstName || 'User'}.`,
+        });
+
+        // Role-based redirection
         if (userData.role === 'ngo') {
           router.push('/ngo/dashboard');
         } else {
           router.push('/volunteer/dashboard');
         }
       } else {
+        // Fallback for missing profile
         router.push('/volunteer/dashboard');
       }
-
-      toast({
-        title: "Signed In",
-        description: "Welcome back to ResQMate.",
-      });
     } catch (error: any) {
       toast({
         variant: "destructive",
