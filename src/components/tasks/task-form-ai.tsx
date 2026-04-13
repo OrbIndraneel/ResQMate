@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -63,8 +62,12 @@ export function TaskFormAI() {
       console.error("AI Generation Error:", error);
       
       let errorMsg = error.message || "Ensure GOOGLE_GENAI_API_KEY is set in your .env file.";
-      if (errorMsg.includes("404") || errorMsg.includes("not found")) {
+      
+      // Check for common error codes in the message
+      if (errorMsg.toLowerCase().includes("not found") || errorMsg.includes("404")) {
         errorMsg = "Model not found. Please verify that the Generative AI API is enabled in your Google Cloud Project and your API key is valid.";
+      } else if (errorMsg.toLowerCase().includes("permission") || errorMsg.includes("403")) {
+        errorMsg = "Permission denied. Check if your API key is restricted or if the API is enabled.";
       }
 
       toast({ 
