@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2 } from 'lucide-react';
+import { Shield, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function RegisterPage() {
   const searchParams = useSearchParams();
@@ -28,15 +29,25 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const isConfigMissing = !process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'undefined';
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isConfigMissing) {
+      toast({
+        variant: "destructive",
+        title: "Configuration Error",
+        description: "Firebase API keys are missing. Please check your .env file.",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Create user profile in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email,
@@ -54,10 +65,16 @@ export default function RegisterPage() {
 
       router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
     } catch (error: any) {
+      let errorMessage = error.message || "Something went wrong during registration.";
+      
+      if (error.code === 'auth/configuration-not-found') {
+        errorMessage = "Firebase Authentication is not configured correctly. Ensure API keys are in .env and the Auth service is enabled in Firebase Console.";
+      }
+
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: error.message || "Something went wrong during registration.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -77,6 +94,16 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isConfigMissing && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Environment Keys Missing</AlertTitle>
+              <AlertDescription>
+                Please ensure you have added your Firebase keys to the .env file with the NEXT_PUBLIC_ prefix.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Tabs defaultValue={initialRole} onValueChange={setRole} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
@@ -103,7 +130,7 @@ export default function RegisterPage() {
                   <Label htmlFor="v-password">Password</Label>
                   <Input id="v-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" className="w-full bg-primary" disabled={loading}>
+                <Button type="submit" className="w-full bg-primary" disabled={loading || isConfigMissing}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as Volunteer"}
                 </Button>
               </form>
@@ -123,7 +150,7 @@ export default function RegisterPage() {
                   <Label htmlFor="n-password">Password</Label>
                   <Input id="n-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
-                <Button type="submit" className="w-full bg-secondary" disabled={loading}>
+                <Button type="submit" className="w-full bg-secondary" disabled={loading || isConfigMissing}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as NGO Admin"}
                 </Button>
               </form>
