@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-bg",
+      "description": "Humanitarian relief efforts background",
+      "imageUrl": "https://picsum.photos/seed/resqhero/1200/600",
+      "imageHint": "humanitarian relief"
+    },
+    {
+      "id": "task-food",
+      "description": "Food distribution task",
+      "imageUrl": "https://picsum.photos/seed/foodtask/600/400",
+      "imageHint": "food distribution"
+    },
+    {
+      "id": "task-medical",
+      "description": "Medical assistance task",
+      "imageUrl": "https://picsum.photos/seed/medtask/600/400",
+      "imageHint": "medical assistance"
+    },
+    {
+      "id": "ngo-profile",
+      "description": "NGO headquarters",
+      "imageUrl": "https://picsum.photos/seed/ngo/400/400",
+      "imageHint": "ngo building"
+    },
+    {
+      "id": "volunteer-avatar",
+      "description": "Volunteer profile picture",
+      "imageUrl": "https://picsum.photos/seed/volunteer/200/200",
+      "imageHint": "volunteer person"
+    }
+  ]
 }
