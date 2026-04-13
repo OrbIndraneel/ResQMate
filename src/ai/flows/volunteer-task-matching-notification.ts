@@ -58,6 +58,7 @@ export async function volunteerTaskMatchingNotification(
 
 const prompt = ai.definePrompt({
   name: 'volunteerTaskMatchingNotificationPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: {schema: VolunteerTaskMatchingNotificationInputSchema},
   output: {schema: VolunteerTaskMatchingNotificationOutputSchema},
   prompt: `You are an intelligent AI assistant specialized in matching volunteers with humanitarian relief tasks. Your primary goal is to assess whether a given relief task is a suitable match for a volunteer, considering their reported skills and geographical location. If a match is found, you must generate an engaging and informative notification message.

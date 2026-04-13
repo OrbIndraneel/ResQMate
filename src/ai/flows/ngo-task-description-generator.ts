@@ -33,6 +33,7 @@ export async function generateNGOTaskDescription(
 
 const prompt = ai.definePrompt({
   name: 'ngoTaskDescriptionPrompt',
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: NGOTaskDescriptionGeneratorInputSchema },
   output: { schema: NGOTaskDescriptionGeneratorOutputSchema },
   prompt: `You are an AI assistant specialized in generating clear, comprehensive, and well-structured task descriptions for NGOs. Your goal is to help NGO Admins efficiently communicate all necessary details to volunteers based on minimal input.
