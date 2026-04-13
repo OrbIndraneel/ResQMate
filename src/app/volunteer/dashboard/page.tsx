@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -11,22 +10,30 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit, doc, getDoc } from 'firebase/firestore';
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
   
-  // Mock recognition stats (could be fetched from a user profile doc)
-  const userStats = {
-    points: 0,
-    nextMilestone: 1000,
-    tasksCompleted: 0,
-    hoursContributed: 0
-  };
+  const MILESTONE = 1000;
 
   useEffect(() => {
+    if (!user) return;
+
+    // Fetch user profile stats
+    const fetchProfile = async () => {
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        setProfile(userDoc.data());
+      }
+    };
+
+    fetchProfile();
+
+    // Fetch available tasks
     const q = query(
       collection(db, 'tasks'),
       where('status', '==', 'open'),
@@ -43,7 +50,7 @@ export default function VolunteerDashboard() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -81,17 +88,17 @@ export default function VolunteerDashboard() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm font-medium">
                   <span>Elite Volunteer Rank</span>
-                  <span>{userStats.points} / {userStats.nextMilestone} pts</span>
+                  <span>{profile?.points || 0} / {MILESTONE} pts</span>
                 </div>
-                <Progress value={(userStats.points / userStats.nextMilestone) * 100} className="bg-white/20" />
+                <Progress value={((profile?.points || 0) / MILESTONE) * 100} className="bg-white/20" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 p-4 rounded-lg text-center">
-                  <p className="text-2xl font-bold">{userStats.tasksCompleted}</p>
-                  <p className="text-[10px] uppercase tracking-wider opacity-80">Tasks</p>
+                  <p className="text-2xl font-bold">{profile?.tasksCompleted || 0}</p>
+                  <p className="text-[10px] uppercase tracking-wider opacity-80">Tasks Completed</p>
                 </div>
                 <div className="bg-white/10 p-4 rounded-lg text-center">
-                  <p className="text-2xl font-bold">{userStats.hoursContributed}</p>
+                  <p className="text-2xl font-bold">{profile?.hoursContributed || 0}</p>
                   <p className="text-[10px] uppercase tracking-wider opacity-80">Hours</p>
                 </div>
               </div>

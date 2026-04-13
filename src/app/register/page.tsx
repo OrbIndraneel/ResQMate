@@ -104,7 +104,7 @@ export default function RegisterPage() {
       const volunteerId = role === 'volunteer' ? generateVolunteerId() : null;
       const finalPrimarySkill = primarySkill === 'Other' ? otherSkillText : primarySkill;
 
-      // Create detailed user document in Firestore (Acting as separate data tables via schema)
+      // Create detailed user document in Firestore
       const userData = {
         uid: user.uid,
         email,
@@ -120,10 +120,13 @@ export default function RegisterPage() {
           proofImage: volunteerProofBase64,
           volunteerId: volunteerId,
           points: 0,
+          tasksCompleted: 0,
+          hoursContributed: 0
         } : {
           organizationName: orgName,
           location: orgLocation,
           proofImage: orgProofBase64,
+          tasksPosted: 0
         })
       };
 

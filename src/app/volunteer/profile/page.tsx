@@ -32,7 +32,9 @@ export default function VolunteerProfile() {
     location: '',
     profession: '',
     volunteerId: '',
-    verificationStatus: 'pending'
+    verificationStatus: 'pending',
+    points: 0,
+    tasksCompleted: 0
   });
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
@@ -53,9 +55,11 @@ export default function VolunteerProfile() {
             location: data.location || '',
             profession: data.profession || '',
             volunteerId: data.volunteerId || 'Assigning...',
-            verificationStatus: data.verificationStatus || 'pending'
+            verificationStatus: data.verificationStatus || 'pending',
+            points: data.points || 0,
+            tasksCompleted: data.tasksCompleted || 0
           });
-          setSelectedSkills(data.skills || []);
+          setSelectedSkills(data.skills || data.additionalSkills || []);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -152,11 +156,11 @@ export default function VolunteerProfile() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-primary/5 p-3 rounded-lg text-center">
-                    <p className="text-xl font-bold text-primary">0</p>
+                    <p className="text-xl font-bold text-primary">{profileData.points}</p>
                     <p className="text-[10px] uppercase font-bold opacity-70">Impact Points</p>
                   </div>
                   <div className="bg-secondary/5 p-3 rounded-lg text-center">
-                    <p className="text-xl font-bold text-secondary">0</p>
+                    <p className="text-xl font-bold text-secondary">{profileData.tasksCompleted}</p>
                     <p className="text-[10px] uppercase font-bold opacity-70">Deployments</p>
                   </div>
                 </div>
