@@ -11,26 +11,57 @@ import { Shield, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function RegisterPage() {
   const searchParams = useSearchParams();
   const initialRole = searchParams.get('role') || 'volunteer';
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [orgName, setOrgName] = useState('');
+  const [role, setRole] = useState(initialRole);
   const router = useRouter();
   const { toast } = useToast();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API registration
-    setTimeout(() => {
-      setLoading(false);
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Create user profile in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email,
+        role: role,
+        firstName: role === 'volunteer' ? firstName : '',
+        lastName: role === 'volunteer' ? lastName : '',
+        organizationName: role === 'ngo' ? orgName : '',
+        createdAt: new Date().toISOString(),
+      });
+
       toast({
         title: "Account Created",
-        description: "Registration successful. Please verify your email via OTP.",
+        description: "Welcome to ResQMate! Your profile is ready.",
       });
-      router.push('/login');
-    }, 1500);
+
+      router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "Something went wrong during registration.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,7 +77,7 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue={initialRole} className="w-full">
+          <Tabs defaultValue={initialRole} onValueChange={setRole} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
               <TabsTrigger value="ngo">NGO Admin</TabsTrigger>
@@ -57,20 +88,20 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="v-first">First Name</Label>
-                    <Input id="v-first" required />
+                    <Input id="v-first" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="v-last">Last Name</Label>
-                    <Input id="v-last" required />
+                    <Input id="v-last" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="v-email">Email Address</Label>
-                  <Input id="v-email" type="email" placeholder="alex@example.com" required />
+                  <Input id="v-email" type="email" placeholder="alex@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="v-phone">Phone Number</Label>
-                  <Input id="v-phone" type="tel" placeholder="+1 (555) 000-0000" required />
+                  <Label htmlFor="v-password">Password</Label>
+                  <Input id="v-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
                 <Button type="submit" className="w-full bg-primary" disabled={loading}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as Volunteer"}
@@ -82,19 +113,15 @@ export default function RegisterPage() {
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="n-org">Organization Name</Label>
-                  <Input id="n-org" placeholder="Red Cross, UNICEF, etc." required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="n-reg">NGO Registration Number</Label>
-                  <Input id="n-reg" placeholder="Official Reg ID" required />
+                  <Input id="n-org" placeholder="Red Cross, UNICEF, etc." required value={orgName} onChange={(e) => setOrgName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="n-email">Admin Email Address</Label>
-                  <Input id="n-email" type="email" placeholder="admin@org.org" required />
+                  <Input id="n-email" type="email" placeholder="admin@org.org" required value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="n-phone">Office Contact</Label>
-                  <Input id="n-phone" type="tel" required />
+                  <Label htmlFor="n-password">Password</Label>
+                  <Input id="n-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
                 <Button type="submit" className="w-full bg-secondary" disabled={loading}>
                   {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as NGO Admin"}

@@ -11,6 +11,8 @@ import { Sparkles, Loader2, Send } from 'lucide-react';
 import { generateNGOTaskDescription } from '@/ai/flows/ngo-task-description-generator';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { db, auth } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export function TaskFormAI() {
   const [loading, setLoading] = useState(false);
@@ -48,13 +50,33 @@ export function TaskFormAI() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth.currentUser) {
+      toast({ variant: "destructive", title: "Error", description: "You must be logged in to post tasks." });
+      return;
+    }
+
     setLoading(true);
-    // Simulate API call to save task
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await addDoc(collection(db, 'tasks'), {
+        title: brief,
+        description: detailed,
+        urgency,
+        location,
+        requiredSkills: skills.split(',').map(s => s.trim()).filter(s => s),
+        status: 'open',
+        creatorId: auth.currentUser.uid,
+        createdAt: serverTimestamp(),
+        volunteersNeeded: 5, // Default
+        volunteersJoined: 0,
+      });
+
       toast({ title: "Task Posted", description: "Your relief task is now live and matching volunteers." });
       router.push('/ngo/dashboard');
-    }, 1500);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save task: " + error.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,6 +96,7 @@ export function TaskFormAI() {
                   placeholder="e.g., Deliver water to camp sector B" 
                   value={brief}
                   onChange={(e) => setBrief(e.target.value)}
+                  required
                 />
                 <Button 
                   type="button" 
@@ -109,6 +132,7 @@ export function TaskFormAI() {
                   placeholder="GPS or Building Name" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  required
                 />
               </div>
             </div>
