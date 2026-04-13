@@ -61,10 +61,16 @@ export function TaskFormAI() {
       }
     } catch (error: any) {
       console.error("AI Generation Error:", error);
+      
+      let errorMsg = error.message || "Ensure GOOGLE_GENAI_API_KEY is set in your .env file.";
+      if (errorMsg.includes("404") || errorMsg.includes("not found")) {
+        errorMsg = "Model not found. Please verify that the Generative AI API is enabled in your Google Cloud Project and your API key is valid.";
+      }
+
       toast({ 
         variant: "destructive",
         title: "AI Expansion Failed", 
-        description: error.message || "Ensure GOOGLE_GENAI_API_KEY is set in your .env file." 
+        description: errorMsg
       });
     } finally {
       setGenerating(false);
