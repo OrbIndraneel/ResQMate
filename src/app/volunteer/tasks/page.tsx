@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Filter, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 
 const CATEGORIES = [
   "All Categories",
@@ -29,10 +30,10 @@ export default function BrowseTasks() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    // Removed orderBy to avoid index requirement errors
     let q = query(
       collection(db, 'tasks'),
-      where('status', '==', 'open'),
-      orderBy('createdAt', 'desc')
+      where('status', '==', 'open')
     );
 
     if (categoryFilter !== "All Categories") {
@@ -43,7 +44,13 @@ export default function BrowseTasks() {
       const taskList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).sort((a: any, b: any) => {
+        // Client-side sorting
+        const dateA = a.createdAt?.seconds || 0;
+        const dateB = b.createdAt?.seconds || 0;
+        return dateB - dateA;
+      });
+      
       setTasks(taskList);
       setLoading(false);
     }, (error) => {
@@ -104,7 +111,7 @@ export default function BrowseTasks() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredTasks.map(task => (
-              <Card key={task.id} className="border-none shadow-md hover:ring-2 ring-primary/20 transition-all bg-card">
+              <Card key={task.id} className="border-none shadow-md hover:ring-2 ring-primary/20 transition-all bg-card flex flex-col">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start mb-2">
                     <Badge variant="outline" className="text-[10px] uppercase font-bold text-secondary border-secondary">
@@ -116,19 +123,21 @@ export default function BrowseTasks() {
                   </div>
                   <CardTitle className="text-xl line-clamp-1">{task.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 flex-1 flex flex-col">
                   <p className="text-sm text-muted-foreground line-clamp-3 min-h-[60px]">
                     {task.description}
                   </p>
                   <div className="flex items-center text-xs text-muted-foreground">
                     <MapPin className="h-3 w-3 mr-1 text-primary" /> {task.location}
                   </div>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 mb-4">
                     {task.requiredSkills?.slice(0, 3).map((s: string) => (
                       <Badge key={s} variant="secondary" className="text-[9px]">{s}</Badge>
                     ))}
                   </div>
-                  <Button className="w-full bg-primary hover:bg-primary/90">Apply to Help</Button>
+                  <Button className="w-full bg-primary hover:bg-primary/90 mt-auto" asChild>
+                    <Link href={`/volunteer/tasks/${task.id}`}>Apply to Help</Link>
+                  </Button>
                 </CardContent>
               </Card>
             ))}

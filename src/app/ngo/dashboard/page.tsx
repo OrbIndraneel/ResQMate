@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function NGODashboard() {
   const { user } = useAuth();
@@ -25,17 +25,23 @@ export default function NGODashboard() {
   useEffect(() => {
     if (!user) return;
 
+    // We removed orderBy from the query to avoid the need for a composite index
     const q = query(
       collection(db, 'tasks'),
-      where('creatorId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('creatorId', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const taskList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).sort((a: any, b: any) => {
+        // Client-side sorting by creation date
+        const dateA = a.createdAt?.seconds || 0;
+        const dateB = b.createdAt?.seconds || 0;
+        return dateB - dateA;
+      });
+
       setTasks(taskList);
       
       const activeCount = taskList.filter(t => t.status !== 'completed').length;
@@ -150,8 +156,10 @@ export default function NGODashboard() {
                         <span className="capitalize px-2 py-0.5 rounded bg-muted text-[10px] font-bold">{task.status?.replace('-', ' ')}</span>
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform">
-                      <ArrowRight className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform" asChild>
+                      <Link href={`/volunteer/tasks/${task.id}`}>
+                        <ArrowRight className="h-5 w-5" />
+                      </Link>
                     </Button>
                   </div>
                 ))
