@@ -33,6 +33,7 @@ export function TaskFormAI() {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [location, setLocation] = useState('');
   const [skills, setSkills] = useState('');
+  const [pointsValue, setPointsValue] = useState('50');
   const { toast } = useToast();
   const router = useRouter();
 
@@ -80,6 +81,7 @@ export function TaskFormAI() {
         createdAt: serverTimestamp(),
         volunteersNeeded: 5,
         volunteersJoined: 0,
+        pointsValue: parseInt(pointsValue) || 50,
       });
 
       toast({ title: "Task Posted", description: "Your relief task is now live and matching volunteers." });
@@ -123,7 +125,7 @@ export function TaskFormAI() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
@@ -157,6 +159,17 @@ export function TaskFormAI() {
                   placeholder="GPS or Building" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="points">Points Reward</Label>
+                <Input 
+                  id="points" 
+                  type="number"
+                  placeholder="50" 
+                  value={pointsValue}
+                  onChange={(e) => setPointsValue(e.target.value)}
                   required
                 />
               </div>

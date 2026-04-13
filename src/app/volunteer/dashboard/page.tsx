@@ -23,15 +23,12 @@ export default function VolunteerDashboard() {
   useEffect(() => {
     if (!user) return;
 
-    // Fetch user profile stats
-    const fetchProfile = async () => {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        setProfile(userDoc.data());
+    // Fetch user profile stats in real-time
+    const profileUnsubscribe = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        setProfile(docSnap.data());
       }
-    };
-
-    fetchProfile();
+    });
 
     // Fetch available tasks
     const q = query(
@@ -40,7 +37,7 @@ export default function VolunteerDashboard() {
       limit(5)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const tasksUnsubscribe = onSnapshot(q, (snapshot) => {
       const taskList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -49,7 +46,10 @@ export default function VolunteerDashboard() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      profileUnsubscribe();
+      tasksUnsubscribe();
+    };
   }, [user]);
 
   if (loading) {
@@ -90,7 +90,7 @@ export default function VolunteerDashboard() {
                   <span>Elite Volunteer Rank</span>
                   <span>{profile?.points || 0} / {MILESTONE} pts</span>
                 </div>
-                <Progress value={((profile?.points || 0) / MILESTONE) * 100} className="bg-white/20" />
+                <Progress value={Math.min(((profile?.points || 0) / MILESTONE) * 100, 100)} className="bg-white/20" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 p-4 rounded-lg text-center">
@@ -131,7 +131,7 @@ export default function VolunteerDashboard() {
                         </div>
                         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1"><Navigation className="h-3 w-3" /> {task.location}</span>
-                          <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> AI Matched</span>
+                          <span className="flex items-center gap-1 text-accent font-medium">+ {task.pointsValue || 50} Points</span>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {task.requiredSkills?.map((s: string) => (
