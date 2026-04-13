@@ -14,12 +14,23 @@ import { useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+const CATEGORIES = [
+  "Food Distribution",
+  "Medical Assistance",
+  "Logistics & Transport",
+  "Shelter & Housing",
+  "Water & Sanitation",
+  "Education",
+  "Search & Rescue"
+];
+
 export function TaskFormAI() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [brief, setBrief] = useState('');
   const [detailed, setDetailed] = useState('');
   const [urgency, setUrgency] = useState<'normal' | 'urgent' | 'emergency'>('normal');
+  const [category, setCategory] = useState(CATEGORIES[0]);
   const [location, setLocation] = useState('');
   const [skills, setSkills] = useState('');
   const { toast } = useToast();
@@ -61,12 +72,13 @@ export function TaskFormAI() {
         title: brief,
         description: detailed,
         urgency,
+        category,
         location,
         requiredSkills: skills.split(',').map(s => s.trim()).filter(s => s),
         status: 'open',
         creatorId: auth.currentUser.uid,
         createdAt: serverTimestamp(),
-        volunteersNeeded: 5, // Default
+        volunteersNeeded: 5,
         volunteersJoined: 0,
       });
 
@@ -111,9 +123,22 @@ export function TaskFormAI() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="urgency">Urgency Level</Label>
+                <Label htmlFor="category">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="urgency">Urgency</Label>
                 <Select value={urgency} onValueChange={(val: any) => setUrgency(val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select urgency" />
@@ -121,15 +146,15 @@ export function TaskFormAI() {
                   <SelectContent>
                     <SelectItem value="normal">Normal</SelectItem>
                     <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="emergency">Critical Emergency</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location">Specific Location</Label>
+                <Label htmlFor="location">Location</Label>
                 <Input 
                   id="location" 
-                  placeholder="GPS or Building Name" 
+                  placeholder="GPS or Building" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   required
@@ -152,8 +177,8 @@ export function TaskFormAI() {
             <Label htmlFor="detailed">Detailed Task Description (AI Assisted)</Label>
             <Textarea 
               id="detailed" 
-              className="min-h-[250px] font-body text-sm leading-relaxed" 
-              placeholder="The AI will fill this in, or you can write manually..."
+              className="min-h-[200px] font-body text-sm" 
+              placeholder="The AI will fill this in..."
               value={detailed}
               onChange={(e) => setDetailed(e.target.value)}
               required

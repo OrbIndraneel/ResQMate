@@ -20,10 +20,10 @@ export default function VolunteerDashboard() {
   
   // Mock recognition stats (could be fetched from a user profile doc)
   const userStats = {
-    points: 850,
+    points: 0,
     nextMilestone: 1000,
-    tasksCompleted: 12,
-    hoursContributed: 45
+    tasksCompleted: 0,
+    hoursContributed: 0
   };
 
   useEffect(() => {
