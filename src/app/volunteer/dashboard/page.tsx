@@ -1,13 +1,24 @@
+
+"use client";
+
+import { useEffect, useState } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Star, MapPin, CheckCircle2, Navigation, ArrowRight } from 'lucide-react';
+import { Trophy, Star, MapPin, Navigation, ArrowRight, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, limit } from 'firebase/firestore';
 
 export default function VolunteerDashboard() {
-  // Mock data for volunteer
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Mock recognition stats (could be fetched from a user profile doc)
   const userStats = {
     points: 850,
     nextMilestone: 1000,
@@ -15,23 +26,45 @@ export default function VolunteerDashboard() {
     hoursContributed: 45
   };
 
-  const personalizedTasks = [
-    { id: '1', title: 'Critical Shelter Support', distance: '1.2 km', matchRate: 95, skills: ['Teamwork', 'First Aid'], type: 'Emergency' },
-    { id: '2', title: 'Supplies Logistics', distance: '3.5 km', matchRate: 88, skills: ['Driving', 'Lifting'], type: 'Urgent' },
-  ];
+  useEffect(() => {
+    const q = query(
+      collection(db, 'tasks'),
+      where('status', '==', 'open'),
+      limit(5)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const taskList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTasks(taskList);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <SiteHeader userRole="volunteer" userName="Alex Rivera" />
+      <SiteHeader userRole="volunteer" userName={user?.displayName || "Volunteer"} />
       <main className="container mx-auto py-8 px-4 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Welcome back, Alex</h1>
+            <h1 className="text-3xl font-bold">Welcome back, {user?.displayName || 'Hero'}</h1>
             <p className="text-muted-foreground">Ready to help? There are critical tasks nearby matching your skills.</p>
           </div>
           <Link href="/volunteer/tasks">
             <Button size="lg" className="bg-primary hover:bg-primary/90">
-              Find Tasks <ArrowRight className="ml-2 h-5 w-5" />
+              Find More Tasks <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
         </div>
@@ -68,7 +101,7 @@ export default function VolunteerDashboard() {
           <Card className="lg:col-span-2 border-none shadow-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>AI-Matched Tasks Nearby</CardTitle>
+                <CardTitle>Available Tasks Nearby</CardTitle>
                 <CardDescription>Based on your GPS location and skills profile.</CardDescription>
               </div>
               <Badge variant="outline" className="flex items-center gap-1 border-accent text-accent">
@@ -76,31 +109,41 @@ export default function VolunteerDashboard() {
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
-              {personalizedTasks.map(task => (
-                <div key={task.id} className="p-4 rounded-xl border bg-card hover:border-accent transition-all group">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-lg">{task.title}</h3>
-                        <Badge className={task.type === 'Emergency' ? 'bg-destructive' : 'bg-secondary'}>{task.type}</Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><Navigation className="h-3 w-3" /> {task.distance} away</span>
-                        <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> {task.matchRate}% Match</span>
-                      </div>
-                      <div className="flex gap-1">
-                        {task.skills.map(s => <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>)}
-                      </div>
-                    </div>
-                    <Link href={`/volunteer/tasks/${task.id}`}>
-                      <Button className="w-full md:w-auto bg-destructive hover:bg-destructive/90 text-white font-bold">
-                        Claim Task
-                      </Button>
-                    </Link>
-                  </div>
+              {tasks.length === 0 ? (
+                <div className="text-center py-8 border rounded-lg border-dashed">
+                  <p className="text-muted-foreground">No active tasks available right now.</p>
                 </div>
-              ))}
-              <Button variant="ghost" className="w-full text-primary font-medium">View personalized feed</Button>
+              ) : (
+                tasks.map(task => (
+                  <div key={task.id} className="p-4 rounded-xl border bg-card hover:border-accent transition-all group">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-lg">{task.title}</h3>
+                          <Badge className={task.urgency === 'emergency' ? 'bg-destructive' : 'bg-secondary'}>{task.urgency}</Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1"><Navigation className="h-3 w-3" /> {task.location}</span>
+                          <span className="flex items-center gap-1"><Star className="h-3 w-3 text-yellow-500 fill-yellow-500" /> AI Matched</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {task.requiredSkills?.map((s: string) => (
+                            <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <Link href={`/volunteer/tasks/${task.id}`}>
+                        <Button className="w-full md:w-auto bg-destructive hover:bg-destructive/90 text-white font-bold">
+                          View Details
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              )}
+              <Button variant="ghost" className="w-full text-primary font-medium" asChild>
+                <Link href="/volunteer/tasks">View all tasks</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>

@@ -1,25 +1,72 @@
+
+"use client";
+
+import { useEffect, useState } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight } from 'lucide-react';
+import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 export default function NGODashboard() {
-  // Mock data for NGO dashboard
-  const activeTasks = [
-    { id: '1', title: 'Food Distribution - Zone 4', urgency: 'emergency', volunteersNeeded: 5, volunteersJoined: 3, status: 'in-progress' },
-    { id: '2', title: 'Medical Supplies Transport', urgency: 'normal', volunteersNeeded: 2, volunteersJoined: 2, status: 'ready' },
-  ];
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    active: 0,
+    volunteers: 0,
+    completion: "0%",
+    alerts: 0
+  });
 
-  const recentRequests = [
-    { id: 'a', task: 'First Aid Support', volunteer: 'Sarah Jenkins', skills: ['First Aid', 'Nursing'], time: '2 mins ago' },
-    { id: 'b', task: 'Shelter Assembly', volunteer: 'Mike Ross', skills: ['Construction', 'Logistics'], time: '15 mins ago' },
-  ];
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'tasks'),
+      where('creatorId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const taskList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTasks(taskList);
+      
+      // Basic stats calculation
+      const activeCount = taskList.filter(t => t.status !== 'completed').length;
+      const totalVolunteers = taskList.reduce((acc, t) => acc + (t.volunteersJoined || 0), 0);
+      
+      setStats({
+        active: activeCount,
+        volunteers: totalVolunteers,
+        completion: "85%", // Placeholder for real logic
+        alerts: taskList.filter(t => t.urgency === 'emergency').length
+      });
+      
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/20">
-      <SiteHeader userRole="ngo" userName="Red Cross Relief" />
+      <SiteHeader userRole="ngo" userName={user?.displayName || "NGO Admin"} />
       <main className="container mx-auto py-8 px-4 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -40,18 +87,18 @@ export default function NGODashboard() {
               <Clock className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">4 tasks nearing deadline</p>
+              <div className="text-2xl font-bold">{stats.active}</div>
+              <p className="text-xs text-muted-foreground">Managed by your team</p>
             </CardContent>
           </Card>
           <Card className="border-none shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Volunteers Active</CardTitle>
+              <CardTitle className="text-sm font-medium">Volunteers Joined</CardTitle>
               <Users className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">48</div>
-              <p className="text-xs text-muted-foreground">+12 since yesterday</p>
+              <div className="text-2xl font-bold">{stats.volunteers}</div>
+              <p className="text-xs text-muted-foreground">Total across all tasks</p>
             </CardContent>
           </Card>
           <Card className="border-none shadow-sm">
@@ -60,17 +107,17 @@ export default function NGODashboard() {
               <CheckCircle className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">85%</div>
+              <div className="text-2xl font-bold">{stats.completion}</div>
               <p className="text-xs text-muted-foreground">Verification rate is healthy</p>
             </CardContent>
           </Card>
           <Card className="border-none shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Critical Alerts</CardTitle>
+              <CardTitle className="text-sm font-medium">Critical Tasks</CardTitle>
               <AlertCircle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">3</div>
+              <div className="text-2xl font-bold">{stats.alerts}</div>
               <p className="text-xs text-muted-foreground">Immediate action required</p>
             </CardContent>
           </Card>
@@ -79,57 +126,54 @@ export default function NGODashboard() {
         <div className="grid gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2 border-none shadow-md">
             <CardHeader>
-              <CardTitle>Current Relief Tasks</CardTitle>
+              <CardTitle>Your Relief Tasks</CardTitle>
               <CardDescription>Track real-time status of your posted operations.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {activeTasks.map(task => (
-                <div key={task.id} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors group">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{task.title}</h3>
-                      <Badge variant={task.urgency === 'emergency' ? 'destructive' : 'secondary'} className="uppercase text-[10px]">
-                        {task.urgency}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {task.volunteersJoined}/{task.volunteersNeeded} Volunteers</span>
-                      <span className="capitalize px-2 py-0.5 rounded bg-muted text-[10px] font-bold">{task.status.replace('-', ' ')}</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform">
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
+              {tasks.length === 0 ? (
+                <div className="text-center py-12 border rounded-lg border-dashed">
+                  <p className="text-muted-foreground">You haven't posted any tasks yet.</p>
+                  <Link href="/ngo/tasks/new" className="mt-4 inline-block">
+                    <Button variant="outline" size="sm">Create your first task</Button>
+                  </Link>
                 </div>
-              ))}
-              <Button variant="outline" className="w-full">View All Active Tasks</Button>
+              ) : (
+                tasks.map(task => (
+                  <div key={task.id} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors group">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{task.title}</h3>
+                        <Badge variant={task.urgency === 'emergency' ? 'destructive' : 'secondary'} className="uppercase text-[10px]">
+                          {task.urgency}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5} Volunteers</span>
+                        <span className="capitalize px-2 py-0.5 rounded bg-muted text-[10px] font-bold">{task.status?.replace('-', ' ')}</span>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="group-hover:translate-x-1 transition-transform">
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
           <Card className="border-none shadow-md">
             <CardHeader>
-              <CardTitle>Recent Applications</CardTitle>
-              <CardDescription>Qualified volunteers applying for tasks.</CardDescription>
+              <CardTitle>Organization Info</CardTitle>
+              <CardDescription>Your relief organization profile.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {recentRequests.map(req => (
-                <div key={req.id} className="space-y-2">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm font-bold">{req.volunteer}</p>
-                    <span className="text-[10px] text-muted-foreground">{req.time}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Applied for: <span className="text-foreground font-medium">{req.task}</span></p>
-                  <div className="flex flex-wrap gap-1">
-                    {req.skills.map(skill => (
-                      <Badge key={skill} variant="outline" className="text-[9px] py-0">{skill}</Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button size="sm" className="flex-1 h-7 text-xs">Approve</Button>
-                    <Button size="sm" variant="outline" className="flex-1 h-7 text-xs">Profile</Button>
-                  </div>
-                </div>
-              ))}
+              <div className="space-y-2">
+                 <p className="text-sm font-bold">Role: NGO Admin</p>
+                 <p className="text-xs text-muted-foreground">Email: {user?.email}</p>
+              </div>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/ngo/profile">Edit Organization Profile</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
