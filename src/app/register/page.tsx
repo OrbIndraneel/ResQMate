@@ -145,9 +145,15 @@ export default function RegisterPage() {
         user = userCredential.user;
       } catch (authError: any) {
         if (authError.code === 'auth/email-already-in-use') {
-           // If email exists in Auth, try to sign in. This handles the case where Firestore was wiped but Auth persists.
-           const signInResult = await signInWithEmailAndPassword(auth, normalizedEmail, password);
-           user = signInResult.user;
+          try {
+            const signInResult = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+            user = signInResult.user;
+          } catch (signInError: any) {
+            if (signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/wrong-password') {
+              throw new Error("This email is already registered with a different password. Please use your previous password or log in.");
+            }
+            throw signInError;
+          }
         } else {
           throw authError;
         }
@@ -195,7 +201,6 @@ export default function RegisterPage() {
           : "Your NGO profile has been created and is pending verification.",
       });
 
-      // Redirect based on role
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       toast({ variant: "destructive", title: "Verification Failed", description: error.message });
