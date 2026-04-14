@@ -148,10 +148,7 @@ export default function RegisterPage() {
             const signInResult = await signInWithEmailAndPassword(auth, normalizedEmail, password);
             user = signInResult.user;
           } catch (signInError: any) {
-            if (signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/wrong-password') {
-              throw new Error("This email is already in our security system but with a different password. Please log in using your original password.");
-            }
-            throw signInError;
+            throw new Error("Account exists with a different password. Please log in or reset your password.");
           }
         } else {
           throw authError;
@@ -166,11 +163,11 @@ export default function RegisterPage() {
       const volunteerId = role === 'volunteer' ? generateVolunteerId() : null;
       const finalPrimarySkill = primarySkill === 'Other' ? otherSkillText : primarySkill;
 
-      const userData = {
+      const registrationData = {
         uid: user.uid,
         email: normalizedEmail,
         role: role,
-        createdAt: new Date().toISOString(),
+        submittedAt: new Date().toISOString(),
         verificationStatus: 'pending',
         ...(role === 'volunteer' ? {
           firstName,
@@ -180,28 +177,22 @@ export default function RegisterPage() {
           additionalSkills: selectedAdditionalSkills,
           proofImage: volunteerProofBase64,
           volunteerId: volunteerId,
-          points: 0,
-          tasksCompleted: 0,
-          hoursContributed: 0
         } : {
           organizationName: orgName,
           location: orgLocation,
           proofImage: orgProofBase64,
-          tasksPosted: 0
         })
       };
 
-      await setDoc(doc(db, 'users', user.uid), userData);
+      // STORE IN DEDICATED REGISTRATIONS TABLE
+      await setDoc(doc(db, 'registrations', user.uid), registrationData);
 
       toast({
-        title: "Registration Successful",
-        description: role === 'volunteer' 
-          ? `Welcome! Your ID ${volunteerId} is awaiting verification.` 
-          : "Your NGO profile has been created and is pending verification.",
+        title: "Application Submitted",
+        description: "Your credentials are now in the 'Registrations' table for admin review.",
       });
 
-      // Use a hard redirect to ensure Auth state is fully realized across the app
-      window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
+      window.location.href = '/login';
     } catch (error: any) {
       toast({ variant: "destructive", title: "Verification Failed", description: error.message });
       setLoading(false);
@@ -305,7 +296,7 @@ export default function RegisterPage() {
                   </div>
                   
                   <Button type="submit" className="w-full h-12" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify & Register</>}
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify & Apply</>}
                   </Button>
                 </form>
               </TabsContent>
@@ -365,7 +356,7 @@ export default function RegisterPage() {
                   </div>
 
                   <Button type="submit" className="w-full h-12 bg-secondary text-secondary-foreground" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify & Register</>}
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify & Apply</>}
                   </Button>
                 </form>
               </TabsContent>
@@ -389,7 +380,7 @@ export default function RegisterPage() {
                 />
               </div>
               <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><KeyRound className="mr-2 h-4 w-4" /> Complete Registration</>}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><KeyRound className="mr-2 h-4 w-4" /> Submit Application</>}
               </Button>
               <Button variant="ghost" type="button" className="w-full text-muted-foreground" onClick={() => setStep('details')}>
                 Back to Details
@@ -399,8 +390,8 @@ export default function RegisterPage() {
         </CardContent>
         <CardFooter className="flex justify-center border-t pt-6">
           <div className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline font-medium">Log in here</Link>
+            Already applied?{" "}
+            <Link href="/login" className="text-primary hover:underline font-medium">Log in to check status</Link>
           </div>
         </CardFooter>
       </Card>

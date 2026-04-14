@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, LogIn, Eye, EyeOff, Lock } from 'lucide-react';
+import { Shield, Loader2, LogIn, Eye, EyeOff, Lock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -21,54 +22,53 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<string>('volunteer');
+  const [statusError, setStatusError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setStatusError(null);
 
     try {
-      // First verify the role matches what is in Firestore
-      const q = query(
-        collection(db, 'users'), 
-        where('email', '==', email.toLowerCase()),
-        where('role', '==', role)
-      );
-      const querySnapshot = await getDocs(q);
+      // 1. Sign in with Auth first
+      const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
+      const user = userCredential.user;
 
-      if (querySnapshot.empty) {
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: `No ${role === 'ngo' ? 'NGO' : 'Volunteer'} account found for this email.`,
-        });
+      // 2. Check USERS table (Verified)
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (data.role !== role) {
+          throw new Error(`Account type mismatch. This is a ${data.role} account.`);
+        }
+        toast({ title: "Welcome Back", description: "Accessing dashboard..." });
+        window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
+        return;
+      }
+
+      // 3. Check REGISTRATIONS table (Pending)
+      const regRef = doc(db, 'registrations', user.uid);
+      const regDoc = await getDoc(regRef);
+
+      if (regDoc.exists()) {
+        setStatusError("Your application is currently being reviewed by an administrator. Please check back later.");
         setLoading(false);
         return;
       }
 
-      // Then sign in with Firebase Auth
-      await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
-
-      toast({
-        title: "Access Granted",
-        description: "Welcome to the ResQMate network.",
-      });
-
-      // Redirect based on role
-      window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
+      // 4. Fallback: Not found anywhere
+      setStatusError("Account record not found in the operational database. Please re-register.");
+      setLoading(false);
     } catch (error: any) {
       console.error("Auth Error:", error);
-      let errorMsg = "Verification failed. Check your credentials.";
-      
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        errorMsg = "The email or password you entered is incorrect.";
-      }
-
       toast({
         variant: "destructive",
         title: "Security Check Failed",
-        description: errorMsg,
+        description: error.message,
       });
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export default function LoginPage() {
         <div className="bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
           <Shield className="h-6 w-6" />
         </div>
-        <span className="font-headline font-black text-2xl tracking-tighter">ResQMate</span>
+        <span className="font-headline font-black text-2xl tracking-tighter text-slate-900">ResQMate</span>
       </Link>
       
       <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl overflow-hidden">
@@ -91,6 +91,14 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-8">
+          {statusError && (
+            <Alert variant="destructive" className="mb-6 bg-rose-50 border-rose-200 text-rose-800">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Account Pending</AlertTitle>
+              <AlertDescription>{statusError}</AlertDescription>
+            </Alert>
+          )}
+
           <Tabs defaultValue="volunteer" onValueChange={setRole} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-100 p-1 h-12 rounded-2xl">
               <TabsTrigger value="volunteer" className="rounded-xl data-[state=active]:shadow-sm font-bold">

@@ -9,16 +9,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2, LogOut, Trash2, AlertTriangle } from 'lucide-react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDocs, deleteDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminVerifyPage() {
-  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [wiping, setWiping] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedReg, setSelectedReg] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const { toast } = useToast();
@@ -40,46 +40,49 @@ export default function AdminVerifyPage() {
 
     setIsAuthorized(true);
 
-    const q = query(
-      collection(db, 'users'),
-      where('verificationStatus', '==', 'pending')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const users = snapshot.docs.map(doc => ({
+    // READ FROM DEDICATED REGISTRATIONS TABLE
+    const unsubscribe = onSnapshot(collection(db, 'registrations'), (snapshot) => {
+      const regs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      setPendingUsers(users);
+      setPendingRegistrations(regs);
       setLoading(false);
     }, (error) => {
       console.error("Firestore Error:", error);
       setLoading(false);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Failed to sync with the verification database.",
-      });
     });
 
     return () => unsubscribe();
   }, [toast, router]);
 
-  const handleVerify = async (userId: string, status: 'verified' | 'rejected') => {
+  const handleVerify = async (regId: string, status: 'verified' | 'rejected') => {
     try {
-      await updateDoc(doc(db, 'users', userId), {
-        verificationStatus: status,
-        verifiedAt: new Date().toISOString()
-      });
+      const reg = pendingRegistrations.find(r => r.id === regId);
+      if (!reg) return;
+
+      if (status === 'verified') {
+        // MOVE TO USERS TABLE
+        await setDoc(doc(db, 'users', regId), {
+          ...reg,
+          verificationStatus: 'verified',
+          verifiedAt: new Date().toISOString(),
+          points: 0,
+          tasksCompleted: 0,
+          hoursContributed: 0,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // REMOVE FROM REGISTRATIONS QUEUE
+      await deleteDoc(doc(db, 'registrations', regId));
       
       toast({
-        title: status === 'verified' ? "User Approved" : "User Rejected",
-        description: `The account status has been updated successfully.`,
+        title: status === 'verified' ? "Application Approved" : "Application Rejected",
+        description: `The registration for ${reg.email} has been processed.`,
       });
       
-      if (selectedUser?.id === userId) {
-        setIsViewOpen(false);
-      }
+      setIsViewOpen(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -90,7 +93,7 @@ export default function AdminVerifyPage() {
   };
 
   const handleWipeData = async () => {
-    if (!confirm("CRITICAL WARNING: This will permanently delete ALL users and tasks from the database. This action cannot be undone. Are you absolutely sure?")) {
+    if (!confirm("CRITICAL WARNING: This will permanently delete ALL users, tasks, and registrations. Are you sure?")) {
       return;
     }
 
@@ -98,19 +101,20 @@ export default function AdminVerifyPage() {
     try {
       const batch = writeBatch(db);
       
-      // Clear Users
       const usersSnap = await getDocs(collection(db, 'users'));
       usersSnap.forEach((doc) => batch.delete(doc.ref));
 
-      // Clear Tasks
       const tasksSnap = await getDocs(collection(db, 'tasks'));
       tasksSnap.forEach((doc) => batch.delete(doc.ref));
+
+      const regsSnap = await getDocs(collection(db, 'registrations'));
+      regsSnap.forEach((doc) => batch.delete(doc.ref));
 
       await batch.commit();
       
       toast({
         title: "Database Reset Complete",
-        description: "All user and task records have been purged.",
+        description: "All records have been purged.",
       });
     } catch (error: any) {
       toast({
@@ -144,7 +148,7 @@ export default function AdminVerifyPage() {
           <span className="font-bold text-xl">Admin Verification Portal</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          <Badge variant="outline" className="border-green-500 text-green-500 hidden sm:flex tracking-widest">SECURE SESSION</Badge>
+          <Badge variant="outline" className="border-green-500 text-green-500 tracking-widest uppercase text-[10px]">SECURE SESSION</Badge>
           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
@@ -155,11 +159,11 @@ export default function AdminVerifyPage() {
         <Tabs defaultValue="queue" className="w-full">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold">Registration Approval Queue</h1>
-              <p className="text-muted-foreground">Review submitted credentials for NGOs and Volunteers.</p>
+              <h1 className="text-3xl font-bold">Registrations Table</h1>
+              <p className="text-muted-foreground">Manage incoming applications for NGOs and Volunteers.</p>
             </div>
             <TabsList className="bg-white border">
-              <TabsTrigger value="queue">Pending Review</TabsTrigger>
+              <TabsTrigger value="queue">Pending Review ({pendingRegistrations.length})</TabsTrigger>
               <TabsTrigger value="danger" className="text-destructive data-[state=active]:bg-destructive data-[state=active]:text-white">
                 <AlertTriangle className="h-4 w-4 mr-2" /> Danger Zone
               </TabsTrigger>
@@ -170,76 +174,57 @@ export default function AdminVerifyPage() {
             <Card className="border-none shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Pending Verifications
-                  <Badge variant="secondary" className="rounded-full px-2">{pendingUsers.length}</Badge>
+                  Incoming Applications
                 </CardTitle>
-                <CardDescription>Manually verify professional IDs and NGO certifications.</CardDescription>
+                <CardDescription>Review credentials submitted to the <strong>registrations</strong> collection.</CardDescription>
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary opacity-20" /></div>
-                ) : pendingUsers.length === 0 ? (
+                ) : pendingRegistrations.length === 0 ? (
                   <div className="text-center py-24 border rounded-xl border-dashed bg-white">
                     <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
                       <FileText className="h-8 w-8 text-muted-foreground opacity-50" />
                     </div>
-                    <h3 className="text-lg font-semibold">Queue is Clear</h3>
-                    <p className="text-muted-foreground max-w-xs mx-auto mt-2">No new registrations require manual verification at this time.</p>
+                    <h3 className="text-lg font-semibold">Registration Queue is Empty</h3>
+                    <p className="text-muted-foreground max-w-xs mx-auto mt-2">No new registration records found in the database.</p>
                   </div>
                 ) : (
                   <div className="rounded-md border bg-white overflow-hidden">
                     <Table>
                       <TableHeader className="bg-muted/50">
                         <TableRow>
-                          <TableHead className="w-[120px]">Type</TableHead>
+                          <TableHead>Type</TableHead>
                           <TableHead>Entity Name</TableHead>
-                          <TableHead className="hidden md:table-cell">Email</TableHead>
-                          <TableHead className="hidden sm:table-cell">Proof Info</TableHead>
+                          <TableHead>Email</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {pendingUsers.map((user) => (
-                          <TableRow key={user.id} className="hover:bg-muted/5">
+                        {pendingRegistrations.map((reg) => (
+                          <TableRow key={reg.id} className="hover:bg-muted/5">
                             <TableCell>
-                              <Badge variant={user.role === 'ngo' ? 'secondary' : 'default'} className="capitalize flex items-center gap-1 w-fit">
-                                {user.role === 'ngo' ? <Building2 className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                                {user.role}
+                              <Badge variant={reg.role === 'ngo' ? 'secondary' : 'default'} className="capitalize">
+                                {reg.role}
                               </Badge>
                             </TableCell>
                             <TableCell className="font-semibold">
-                              {user.role === 'ngo' ? user.organizationName : `${user.firstName} ${user.lastName}`}
+                              {reg.role === 'ngo' ? reg.organizationName : `${reg.firstName} ${reg.lastName}`}
                             </TableCell>
-                            <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
-                              {user.email}
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                              <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
-                                {user.role === 'ngo' ? user.location : user.volunteerId}
-                              </span>
+                            <TableCell className="text-muted-foreground text-xs font-mono">
+                              {reg.email}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8"
-                                  onClick={() => {
-                                    setSelectedUser(user);
-                                    setIsViewOpen(true);
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4 mr-1.5" /> Review
-                                </Button>
-                                <Button 
-                                  variant="default" 
-                                  size="sm" 
-                                  className="h-8 bg-green-600 hover:bg-green-700 hidden sm:flex"
-                                  onClick={() => handleVerify(user.id, 'verified')}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => {
+                                  setSelectedReg(reg);
+                                  setIsViewOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1.5" /> Review
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -255,133 +240,58 @@ export default function AdminVerifyPage() {
             <Card className="border-destructive/20 border-2 shadow-xl bg-destructive/5">
               <CardHeader>
                 <CardTitle className="text-destructive flex items-center gap-2">
-                  <Trash2 className="h-6 w-6" /> Database Reset (Danger Zone)
+                  <Trash2 className="h-6 w-6" /> Database Purge
                 </CardTitle>
                 <CardDescription>
-                  This utility allows you to clear environment data during development.
+                  Wipe all operational data from the system.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="p-4 bg-white border-l-4 border-destructive rounded-r-lg">
-                  <h4 className="font-bold text-destructive mb-1">Warning: Irreversible Action</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Wiping the database will remove all documents from the <code className="bg-muted px-1 rounded">users</code> and <code className="bg-muted px-1 rounded">tasks</code> collections. 
-                    Your admin session in the <code className="bg-muted px-1 rounded">admins</code> collection will remain to prevent lockout.
-                  </p>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between p-6 bg-white rounded-xl border border-dashed border-destructive/30">
-                  <div className="space-y-1">
-                    <p className="font-bold">Purge Application State</p>
-                    <p className="text-xs text-muted-foreground">Deletes all NGOs, Volunteers, and Relief Tasks.</p>
-                  </div>
-                  <Button 
-                    variant="destructive" 
-                    size="lg" 
-                    className="font-bold h-12 px-8"
-                    onClick={handleWipeData}
-                    disabled={wiping}
-                  >
-                    {wiping ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                    Wipe All Data Now
-                  </Button>
-                </div>
+                <Button 
+                  variant="destructive" 
+                  size="lg" 
+                  className="font-bold w-full h-14"
+                  onClick={handleWipeData}
+                  disabled={wiping}
+                >
+                  {wiping ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                  Wipe Users, Tasks & Registrations
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </main>
 
-      {/* Review Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto p-0 border-none shadow-2xl">
-          <div className="bg-primary p-6 text-primary-foreground">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                <ShieldCheck className="h-6 w-6" />
-                Document Review
-              </DialogTitle>
-              <DialogDescription className="text-primary-foreground/80">
-                Verifying {selectedUser?.role === 'ngo' ? selectedUser?.organizationName : `${selectedUser?.firstName} ${selectedUser?.lastName}`}
-              </DialogDescription>
-            </DialogHeader>
-          </div>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Registration Review</DialogTitle>
+            <DialogDescription>Reviewing {selectedReg?.email}</DialogDescription>
+          </DialogHeader>
 
-          {selectedUser && (
-            <div className="p-6 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div className="bg-muted/40 p-4 rounded-xl border">
-                    <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-3">Applicant Profile</h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Type</span>
-                        <Badge className="capitalize">{selectedUser.role}</Badge>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Entity ID</span>
-                        <span className="text-sm font-mono font-bold">{selectedUser.volunteerId || 'NGO-LOC'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Specialization</span>
-                        <span className="text-sm font-semibold">{selectedUser.profession || selectedUser.location || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedUser.role === 'volunteer' && (
-                    <div className="bg-muted/40 p-4 rounded-xl border">
-                      <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-3">Expertise Declared</h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        <Badge variant="outline" className="bg-white">{selectedUser.primarySkill || selectedUser.skills?.[0]}</Badge>
-                        {selectedUser.additionalSkills?.map((s: string) => (
-                          <Badge key={s} variant="secondary" className="text-[10px] bg-primary/5 text-primary border-primary/10">{s}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+          {selectedReg && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Details</p>
+                  <p className="text-sm font-bold">Role: <span className="font-normal capitalize">{selectedReg.role}</span></p>
+                  <p className="text-sm font-bold">Name: <span className="font-normal">{selectedReg.role === 'ngo' ? selectedReg.organizationName : `${selectedReg.firstName} ${selectedReg.lastName}`}</span></p>
                 </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Proof of Identity / NGO Status</h4>
-                  <div className="relative aspect-video w-full overflow-hidden rounded-xl border-2 border-dashed bg-black/5 flex items-center justify-center group">
-                    {selectedUser.proofImage ? (
-                      <img 
-                        src={selectedUser.proofImage} 
-                        alt="Identity Proof" 
-                        className="object-contain w-full h-full transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="text-center p-10">
-                        <FileText className="h-12 w-12 text-muted-foreground mx-auto opacity-20" />
-                        <p className="text-sm text-muted-foreground mt-2">No document provided</p>
-                      </div>
-                    )}
-                  </div>
+                <div className="bg-muted p-4 rounded-lg">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Identification</p>
+                  {selectedReg.proofImage ? (
+                    <img src={selectedReg.proofImage} alt="Proof" className="w-full aspect-video object-contain rounded border bg-white" />
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No document image provided.</p>
+                  )}
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
-                <Button 
-                  variant="outline"
-                  className="flex-1 h-12 order-3 sm:order-1"
-                  onClick={() => setIsViewOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  className="flex-1 h-12 order-2"
-                  onClick={() => handleVerify(selectedUser.id, 'rejected')}
-                >
-                  <X className="mr-2 h-5 w-5" /> Reject Application
-                </Button>
-                <Button 
-                  className="flex-[2] bg-green-600 hover:bg-green-700 h-12 order-1 sm:order-3" 
-                  onClick={() => handleVerify(selectedUser.id, 'verified')}
-                >
-                  <Check className="mr-2 h-5 w-5" /> Approve Registration
-                </Button>
+              <div className="flex gap-4 border-t pt-6">
+                <Button variant="outline" className="flex-1" onClick={() => setIsViewOpen(false)}>Close</Button>
+                <Button variant="destructive" className="flex-1" onClick={() => handleVerify(selectedReg.id, 'rejected')}>Reject</Button>
+                <Button className="flex-[2] bg-green-600 hover:bg-green-700" onClick={() => handleVerify(selectedReg.id, 'verified')}>Approve & Transfer to Users</Button>
               </div>
             </div>
           )}
