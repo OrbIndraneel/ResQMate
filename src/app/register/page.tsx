@@ -140,8 +140,13 @@ export default function RegisterPage() {
         user = userCredential.user;
       } catch (authError: any) {
         if (authError.code === 'auth/email-already-in-use') {
-          const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
-          user = userCredential.user;
+          // If account exists, try to sign in
+          try {
+            const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
+            user = userCredential.user;
+          } catch (signInError: any) {
+            throw new Error("This email is already registered but could not be logged in with the standard credentials. Please try logging in directly.");
+          }
         } else {
           throw authError;
         }
@@ -187,10 +192,10 @@ export default function RegisterPage() {
           : "Your NGO profile has been created and is pending verification.",
       });
 
-      router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
+      // Force refresh navigation
+      window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       toast({ variant: "destructive", title: "Verification Failed", description: error.message });
-    } finally {
       setLoading(false);
     }
   };

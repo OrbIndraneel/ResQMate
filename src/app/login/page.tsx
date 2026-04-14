@@ -96,14 +96,22 @@ export default function LoginPage() {
     
     try {
       try {
+        // Try standard sign in
         await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
       } catch (signInError: any) {
-        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+        // Handle newer Firebase obfuscated error codes and standard ones
+        const isCredError = signInError.code === 'auth/user-not-found' || 
+                           signInError.code === 'auth/invalid-credential' || 
+                           signInError.code === 'auth/wrong-password';
+
+        if (isCredError) {
           try {
+            // If sign in fails, try to create the account if it's a new auth user
             await createUserWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
           } catch (createError: any) {
+            // If create fails because it exists, we have a true password mismatch for the proto password
             if (createError.code === 'auth/email-already-in-use') {
-              await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
+              throw new Error("Identity conflict: This email is registered but the internal credentials do not match. Please contact support.");
             } else {
               throw createError;
             }
@@ -118,13 +126,14 @@ export default function LoginPage() {
         description: "Welcome back to ResQMate.",
       });
 
+      // Force a clean navigation to ensure auth context updates
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: error.code === 'auth/wrong-password' ? "Identity collision detected. Please contact support." : "Failed to establish a secure session.",
+        description: error.message || "Failed to establish a secure session.",
       });
       setLoading(false);
     }
