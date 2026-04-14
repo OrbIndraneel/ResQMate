@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, LogIn, Eye, EyeOff, User, Building2, ChevronRight } from 'lucide-react';
+import { Shield, Loader2, LogIn, Eye, EyeOff, User, Building2, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -38,8 +38,8 @@ export default function LoginPage() {
       if (querySnapshot.empty) {
         toast({
           variant: "destructive",
-          title: "Access Restricted",
-          description: `No active ${role === 'ngo' ? 'NGO' : 'Volunteer'} profile found with this email.`,
+          title: "Account Not Found",
+          description: `No ${role === 'ngo' ? 'NGO' : 'Volunteer'} account is registered with this email.`,
         });
         setLoading(false);
         return;
@@ -48,22 +48,22 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
 
       toast({
-        title: "Session Established",
-        description: "Welcome back to the coordination center.",
+        title: "Login Successful",
+        description: "Access granted to secure dashboard.",
       });
 
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);
-      let errorMsg = "Credentials verification failed.";
+      let errorMsg = "Verification failed. Check your credentials.";
       
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-        errorMsg = "Incorrect authentication parameters. Please check your password.";
+        errorMsg = "The email or password you entered is incorrect.";
       }
 
       toast({
         variant: "destructive",
-        title: "Authentication Fault",
+        title: "Security Check Failed",
         description: errorMsg,
       });
       setLoading(false);
@@ -71,80 +71,92 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 gradient-bg">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-500">
-        <div className="text-center space-y-2">
-          <Link className="inline-flex items-center justify-center bg-primary p-3 rounded-2xl mb-4 shadow-xl shadow-primary/20" href="/">
-            <Shield className="h-8 w-8 text-white" />
-          </Link>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Responder Access</h1>
-          <p className="text-slate-500 font-medium">Verify your identity to enter the dashboard.</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4 hero-gradient">
+      <Link href="/" className="mb-8 flex items-center gap-2 group transition-all hover:-translate-y-1">
+        <div className="bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
+          <Shield className="h-6 w-6" />
         </div>
-
-        <Card className="shadow-2xl border-none rounded-[2.5rem] overflow-hidden">
+        <span className="font-headline font-black text-2xl tracking-tighter">ResQMate</span>
+      </Link>
+      
+      <Card className="w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-none rounded-3xl overflow-hidden">
+        <CardHeader className="space-y-2 text-center pb-8 pt-10">
+          <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Welcome Back</CardTitle>
+          <CardDescription className="text-slate-500">
+            Sign in to continue your humanitarian mission.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-8">
           <Tabs defaultValue="volunteer" onValueChange={setRole} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 p-1 bg-slate-100/50">
-              <TabsTrigger value="volunteer" className="rounded-2xl data-[state=active]:bg-white data-[state=active]:shadow-sm py-3 font-bold">
-                <User className="h-4 w-4 mr-2" /> Volunteer
+            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-100 p-1 h-12 rounded-2xl">
+              <TabsTrigger value="volunteer" className="rounded-xl data-[state=active]:shadow-sm font-bold">
+                Volunteer
               </TabsTrigger>
-              <TabsTrigger value="ngo" className="rounded-2xl data-[state=active]:bg-white data-[state=active]:shadow-sm py-3 font-bold">
-                <Building2 className="h-4 w-4 mr-2" /> NGO Admin
+              <TabsTrigger value="ngo" className="rounded-xl data-[state=active]:shadow-sm font-bold">
+                NGO Admin
               </TabsTrigger>
             </TabsList>
             
-            <CardContent className="pt-8 px-8">
-              <form onSubmit={handleLogin} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-900 font-bold ml-1">Secure Email</Label>
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-slate-700 font-bold ml-1">Email Address</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="name@organization.org" 
+                  required 
+                  className="h-12 px-4 rounded-xl border-slate-200 focus:ring-primary/20"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <Label htmlFor="password" title="Password must be at least 6 characters" className="text-slate-700 font-bold">Password</Label>
+                  <Link href="#" className="text-xs text-primary font-bold hover:underline">Forgot access?</Link>
+                </div>
+                <div className="relative">
                   <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@organization.org" 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
                     required 
-                    className="h-12 px-4 rounded-xl bg-slate-50 border-slate-200 focus:ring-primary/20"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 px-4 rounded-xl border-slate-200 focus:ring-primary/20"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center px-1">
-                    <Label htmlFor="password" title="Password" className="text-slate-900 font-bold">Secret Password</Label>
-                    <Link href="#" className="text-xs font-bold text-primary hover:underline uppercase tracking-wider">Recovery</Link>
-                  </div>
-                  <div className="relative">
-                    <Input 
-                      id="password" 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      className="h-12 px-4 rounded-xl bg-slate-50 border-slate-200 focus:ring-primary/20"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition-all" disabled={loading}>
-                  {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><LogIn className="mr-2 h-5 w-5" /> Authenticate</>}
-                </Button>
-              </form>
-            </CardContent>
+              </div>
+              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 mt-4" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><LogIn className="mr-2 h-5 w-5" /> Secure Access</>}
+              </Button>
+            </form>
           </Tabs>
-          <CardFooter className="flex flex-col space-y-4 pb-8">
-            <div className="text-sm text-center text-slate-500 font-medium">
-              New responder?{" "}
-              <Link href="/register" className="text-primary hover:underline font-bold">
-                Create Account <ChevronRight className="inline-block h-4 w-4" />
-              </Link>
-            </div>
-          </CardFooter>
-        </Card>
-      </div>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-6 pb-10 pt-4">
+          <div className="flex items-center gap-4 w-full px-8">
+            <div className="h-px bg-slate-200 flex-1" />
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OR</span>
+            <div className="h-px bg-slate-200 flex-1" />
+          </div>
+          <div className="text-sm text-center text-slate-600">
+            Need an account?{" "}
+            <Link href="/register" className="text-primary hover:underline font-bold">
+              Join the Network
+            </Link>
+          </div>
+        </CardFooter>
+      </Card>
+      
+      <p className="mt-8 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+        <Lock className="h-3 w-3" /> Encrypted RSA-256 Protocol
+      </p>
     </div>
   );
 }

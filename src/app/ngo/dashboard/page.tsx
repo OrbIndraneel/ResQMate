@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, BarChart3, TrendingUp } from 'lucide-react';
+import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, BarChart3, TrendingUp, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
@@ -20,7 +20,7 @@ export default function NGODashboard() {
   const [stats, setStats] = useState({
     active: 0,
     volunteers: 0,
-    completion: "85%",
+    completion: "0%",
     alerts: 0
   });
 
@@ -70,14 +70,14 @@ export default function NGODashboard() {
 
   if (authLoading || (loading && user)) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-slate-50">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-slate-50 hero-gradient">
         <div className="relative">
-          <div className="absolute -inset-4 bg-primary/20 blur-xl rounded-full animate-pulse" />
-          <Loader2 className="h-12 w-12 animate-spin text-primary relative" />
+          <div className="h-16 w-16 rounded-full border-4 border-primary/20 animate-pulse" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary absolute top-4 left-4" />
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-slate-900 tracking-tight">Synchronizing Command...</p>
-          <p className="text-sm text-slate-400 font-medium">Fetching active operational data</p>
+          <p className="text-lg font-bold text-slate-900">Syncing Operations</p>
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Establishing Secure Channel...</p>
         </div>
       </div>
     );
@@ -88,122 +88,138 @@ export default function NGODashboard() {
   return (
     <div className="min-h-screen bg-slate-50/50">
       <SiteHeader userRole="ngo" userName={user?.displayName || "NGO Admin"} />
-      <main className="container mx-auto py-10 px-6 space-y-10 max-w-7xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      
+      <main className="container mx-auto py-10 px-6 space-y-10">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
           <div className="space-y-1">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">NGO Operations</h1>
-            <p className="text-slate-500 font-medium flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Live System Monitor
-            </p>
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">NGO Command Center</h1>
+            <p className="text-slate-500 font-medium text-lg">Managing {tasks.length} active relief missions globally.</p>
           </div>
           <Link href="/ngo/tasks/new">
-            <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold shadow-xl shadow-primary/20 transition-all active:scale-95 group">
-              <Plus className="mr-2 h-6 w-6 group-hover:rotate-90 transition-transform" /> Post Relief Mission
+            <Button size="lg" className="rounded-2xl h-14 px-8 text-lg font-bold shadow-xl shadow-primary/20 group">
+              <Plus className="mr-2 h-6 w-6 group-hover:rotate-90 transition-transform" /> Post New Task
             </Button>
           </Link>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Stats Grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Active Missions", value: stats.active, icon: BarChart3, color: "text-blue-500", bg: "bg-blue-50" },
-            { label: "Total Responders", value: stats.volunteers, icon: Users, color: "text-teal-500", bg: "bg-teal-50" },
-            { label: "Success Rate", value: stats.completion, icon: TrendingUp, color: "text-indigo-500", bg: "bg-indigo-50" },
-            { label: "Alerts Level", value: stats.alerts, icon: AlertCircle, color: "text-rose-500", bg: "bg-rose-50" }
-          ].map((stat, i) => (
-            <Card key={i} className="border-none shadow-sm rounded-3xl group hover:shadow-md transition-all">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-slate-400">{stat.label}</CardTitle>
-                <div className={`${stat.bg} p-2 rounded-xl group-hover:scale-110 transition-transform`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            { label: "Active Tasks", val: stats.active, icon: Clock, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Total Volunteers", val: stats.volunteers, icon: Users, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "Success Rate", val: stats.completion, icon: TrendingUp, color: "text-primary", bg: "bg-primary/5" },
+            { label: "Emergency Alerts", val: stats.alerts, icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-50" }
+          ].map((s, i) => (
+            <Card key={i} className="border-none shadow-sm rounded-3xl overflow-hidden group hover:scale-[1.02] transition-transform">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className={`p-3 rounded-2xl ${s.bg} ${s.color}`}>
+                    <s.icon className="h-6 w-6" />
+                  </div>
+                  <BarChart3 className="h-4 w-4 text-slate-200" />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-black text-slate-900 tracking-tighter">{stat.value}</div>
+                <div className="mt-4 space-y-1">
+                  <div className="text-3xl font-black text-slate-900">{s.val}</div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
-          <Card className="lg:col-span-2 border-none shadow-xl rounded-[2.5rem] bg-white">
-            <CardHeader className="flex flex-row items-center justify-between border-b px-8 py-6">
-              <div>
-                <CardTitle className="text-2xl font-black">Live Deployment List</CardTitle>
-                <CardDescription className="font-medium">Real-time tracking of active humanitarian tasks.</CardDescription>
+        <div className="grid gap-8 lg:grid-cols-12 items-start">
+          <Card className="lg:col-span-8 border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white/50 backdrop-blur-sm">
+            <CardHeader className="px-8 pt-10 flex flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <CardTitle className="text-2xl font-black">Operational Status</CardTitle>
+                <CardDescription className="text-slate-500 font-medium">Real-time tracking of mission progress.</CardDescription>
               </div>
+              <Button variant="outline" size="sm" className="rounded-full border-2 font-bold px-4">View Archive</Button>
             </CardHeader>
             <CardContent className="p-8 space-y-4">
               {tasks.length === 0 ? (
-                <div className="text-center py-20 border-2 border-dashed rounded-[2rem] bg-slate-50/50">
-                  <div className="bg-slate-200 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="h-8 w-8 text-slate-400" />
+                <div className="text-center py-20 border-4 border-dashed rounded-[2rem] border-slate-100 bg-slate-50/50 group hover:border-primary/20 transition-colors">
+                  <div className="bg-white h-16 w-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <Calendar className="h-8 w-8 text-slate-300" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900">No active deployments</h3>
-                  <p className="text-slate-500 font-medium mt-1">Start by publishing a new relief mission.</p>
+                  <h3 className="text-xl font-bold text-slate-900">No Operations Scheduled</h3>
+                  <p className="text-slate-500 max-w-xs mx-auto mt-2">Deploy your first relief task to begin coordinating responders.</p>
+                  <Link href="/ngo/tasks/new" className="mt-8 inline-block">
+                    <Button variant="secondary" className="rounded-full font-bold px-8">Create Task</Button>
+                  </Link>
                 </div>
               ) : (
-                tasks.map(task => (
-                  <div key={task.id} className="flex items-center justify-between p-6 rounded-3xl border-2 border-slate-50 bg-white hover:border-primary/20 hover:shadow-xl transition-all group">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <Badge variant={task.urgency === 'emergency' ? 'destructive' : 'secondary'} className="rounded-full px-3 uppercase text-[10px] font-black">
-                          {task.urgency}
-                        </Badge>
-                        <h3 className="font-bold text-lg text-slate-900">{task.title}</h3>
+                <div className="grid gap-4">
+                  {tasks.map(task => (
+                    <div key={task.id} className="flex items-center justify-between p-6 rounded-3xl border border-slate-100 bg-white hover:border-primary/30 hover:shadow-lg transition-all group">
+                      <div className="flex gap-4 items-center">
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-bold ${task.urgency === 'emergency' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>
+                          {task.urgency === 'emergency' ? '!' : '#'}
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-slate-900 group-hover:text-primary transition-colors">{task.title}</h3>
+                            <Badge variant={task.urgency === 'emergency' ? 'destructive' : 'secondary'} className="uppercase text-[10px] rounded-md font-bold">
+                              {task.urgency}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-6 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            <span className="flex items-center gap-1.5"><Users className="h-4 w-4" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5} Responders</span>
+                            <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> {task.status?.replace('-', ' ')}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-6 text-sm font-semibold text-slate-400">
-                        <span className="flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-full"><Users className="h-4 w-4" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5}</span>
-                        <span className="uppercase text-[10px] tracking-widest font-black text-indigo-500">{task.status?.replace('-', ' ')}</span>
-                      </div>
+                      <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-primary/10 group-hover:translate-x-2 transition-all" asChild>
+                        <Link href={`/volunteer/tasks/${task.id}`}>
+                          <ArrowRight className="h-6 w-6 text-slate-300 group-hover:text-primary" />
+                        </Link>
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full group-hover:bg-primary group-hover:text-white transition-all shadow-inner" asChild>
-                      <Link href={`/volunteer/tasks/${task.id}`}>
-                        <ArrowRight className="h-6 w-6" />
-                      </Link>
-                    </Button>
-                  </div>
-                ))
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
 
-          <div className="space-y-8">
-            <Card className="border-none shadow-xl rounded-[2.5rem] bg-primary text-white overflow-hidden relative group">
-              <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
-              <CardHeader className="relative">
-                <CardTitle className="text-xl font-black">Organization Profile</CardTitle>
-                <CardDescription className="text-white/70 font-medium">Internal identity overview.</CardDescription>
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="border-none shadow-xl rounded-[2.5rem] bg-slate-900 text-white overflow-hidden relative">
+              <div className="absolute top-0 right-0 h-32 w-32 bg-primary/20 rounded-full -mr-16 -mt-16 blur-3xl" />
+              <CardHeader className="pt-10 px-8">
+                <CardTitle className="text-xl">Organization Identity</CardTitle>
+                <CardDescription className="text-slate-400">Your profile and verification status.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 relative">
+              <CardContent className="px-8 pb-10 space-y-8">
                 <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10">
-                    <p className="text-xs font-black uppercase tracking-widest text-white/50 mb-1">Access Level</p>
-                    <p className="text-lg font-bold">NGO Administrator</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10">
-                    <p className="text-xs font-black uppercase tracking-widest text-white/50 mb-1">Authenticated Email</p>
-                    <p className="text-sm font-medium truncate">{user?.email}</p>
-                  </div>
+                   <div className="flex items-center gap-4">
+                     <div className="h-16 w-16 rounded-2xl bg-white/10 flex items-center justify-center text-3xl font-black">
+                       {(user?.displayName || "N")[0]}
+                     </div>
+                     <div>
+                       <p className="font-bold text-lg">{user?.displayName}</p>
+                       <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Verified NGO</p>
+                     </div>
+                   </div>
+                   <div className="p-4 bg-white/5 rounded-2xl space-y-1">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Admin ID</p>
+                      <p className="text-xs font-mono text-slate-300 break-all">{user?.uid}</p>
+                   </div>
                 </div>
-                <Button className="w-full h-12 rounded-xl bg-white text-primary font-bold hover:bg-slate-50 transition-colors shadow-lg shadow-black/10" asChild>
-                  <Link href="/ngo/profile">Modify Profile</Link>
+                <Button variant="outline" className="w-full h-14 rounded-2xl border-white/20 hover:bg-white/10 text-white font-bold" asChild>
+                  <Link href="/ngo/profile">Edit Profile Details</Link>
                 </Button>
               </CardContent>
             </Card>
-
-            <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-xl font-black">System Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between text-sm font-bold p-4 bg-slate-50 rounded-2xl">
-                  <span className="text-slate-500">Infrastructure</span>
-                  <span className="text-green-500 flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> Nominal</span>
+            
+            <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-primary/10 border border-primary/20">
+              <CardContent className="p-8 space-y-4">
+                <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center">
+                  <Heart className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center justify-between text-sm font-bold p-4 bg-slate-50 rounded-2xl">
-                  <span className="text-slate-500">AI Assist</span>
-                  <span className="text-primary flex items-center gap-1.5"><Zap className="h-4 w-4" /> Ready</span>
-                </div>
+                <h3 className="text-lg font-bold text-slate-900">Need Immediate Help?</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">Our AI response specialists are available 24/7 to help you structure your emergency tasks for maximum volunteer engagement.</p>
+                <Button variant="link" className="p-0 h-auto text-primary font-bold group">
+                  Open AI Assistant <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </CardContent>
             </Card>
           </div>
