@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +112,7 @@ export default function Home() {
         <div className="flex flex-col gap-1">
           <p className="text-xs text-muted-foreground">© 2024 ResQMate. Dedicated to Humanitarian Excellence.</p>
           <div className="flex gap-4">
-            <Link className="text-[10px] text-primary hover:underline flex items-center gap-1 font-bold" href="/admin/verify">
+            <Link className="text-[10px] text-primary hover:underline flex items-center gap-1 font-bold" href="/admin/login">
               <Lock className="h-3 w-3" /> Developer Admin Portal
             </Link>
           </div>

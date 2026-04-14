@@ -1,11 +1,13 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2 } from 'lucide-react';
+import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2, LogOut } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -16,9 +18,27 @@ export default function AdminVerifyPage() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
+    // Check session
+    const session = localStorage.getItem('admin_session');
+    if (!session) {
+      router.push('/admin/login');
+      return;
+    }
+
+    const { expiry } = JSON.parse(session);
+    if (Date.now() > expiry) {
+      localStorage.removeItem('admin_session');
+      router.push('/admin/login');
+      return;
+    }
+
+    setIsAuthorized(true);
+
     const q = query(
       collection(db, 'users'),
       where('verificationStatus', '==', 'pending')
@@ -42,7 +62,7 @@ export default function AdminVerifyPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, router]);
 
   const handleVerify = async (userId: string, status: 'verified' | 'rejected') => {
     try {
@@ -68,15 +88,31 @@ export default function AdminVerifyPage() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('admin_session');
+    router.push('/admin/login');
+  };
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <Loader2 className="animate-spin h-10 w-10 text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/20 pb-20">
-      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-primary text-primary-foreground sticky top-0 z-50">
+      <header className="px-4 lg:px-6 h-16 flex items-center border-b bg-slate-900 text-white sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6" />
-          <span className="font-bold text-xl">ResQMate Admin Portal</span>
+          <ShieldCheck className="h-6 w-6 text-primary" />
+          <span className="font-bold text-xl">Admin Verification Portal</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          <Badge variant="outline" className="border-white text-white hidden sm:flex tracking-widest">SECURE ACCESS</Badge>
+          <Badge variant="outline" className="border-green-500 text-green-500 hidden sm:flex tracking-widest">SECURE SESSION</Badge>
+          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" /> Logout
+          </Button>
         </div>
       </header>
 
@@ -213,7 +249,7 @@ export default function AdminVerifyPage() {
                     <div className="bg-muted/40 p-4 rounded-xl border">
                       <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest mb-3">Expertise Declared</h4>
                       <div className="flex flex-wrap gap-1.5">
-                        <Badge variant="outline" className="bg-white">{selectedUser.primarySkill}</Badge>
+                        <Badge variant="outline" className="bg-white">{selectedUser.primarySkill || selectedUser.skills?.[0]}</Badge>
                         {selectedUser.additionalSkills?.map((s: string) => (
                           <Badge key={s} variant="secondary" className="text-[10px] bg-primary/5 text-primary border-primary/10">{s}</Badge>
                         ))}
