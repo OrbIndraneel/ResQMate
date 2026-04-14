@@ -34,7 +34,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Verify user exists with the selected role
       const q = query(
         collection(db, 'users'), 
         where('email', '==', email.toLowerCase()),
@@ -95,14 +94,11 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      // Attempt to sign in
       try {
-        await signInWithEmailAndPassword(auth, email, PROTO_PWD);
+        await signInWithEmailAndPassword(auth, email.toLowerCase(), PROTO_PWD);
       } catch (signInError: any) {
-        // If user exists in Firestore but not in Auth (common in prototype migration)
-        // create the Auth record on the fly since OTP is already verified.
         if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-          await createUserWithEmailAndPassword(auth, email, PROTO_PWD);
+          await createUserWithEmailAndPassword(auth, email.toLowerCase(), PROTO_PWD);
         } else {
           throw signInError;
         }
@@ -113,19 +109,15 @@ export default function LoginPage() {
         description: "Welcome back to ResQMate.",
       });
 
-      if (role === 'ngo') {
-        router.push('/ngo/dashboard');
-      } else {
-        router.push('/volunteer/dashboard');
-      }
+      // Using window.location for a hard refresh to ensure clean state
+      window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: "Failed to establish a secure session. Please try again.",
+        description: "Failed to establish a secure session.",
       });
-    } finally {
       setLoading(false);
     }
   };

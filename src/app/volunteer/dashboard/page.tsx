@@ -27,7 +27,6 @@ export default function VolunteerDashboard() {
     if (authLoading) return;
 
     if (!user) {
-      console.log("Volunteer Dashboard: No user found, redirecting to login");
       router.push('/login');
       return;
     }

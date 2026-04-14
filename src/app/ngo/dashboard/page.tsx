@@ -29,7 +29,6 @@ export default function NGODashboard() {
     if (authLoading) return;
     
     if (!user) {
-      console.log("NGO Dashboard: No user found, redirecting to login");
       router.push('/login');
       return;
     }
