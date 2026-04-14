@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, LogIn, Eye, EyeOff, User, Building2, ChevronLeft } from 'lucide-react';
+import { Shield, Loader2, LogIn, Eye, EyeOff, User, Building2, ChevronLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
@@ -52,6 +53,7 @@ export default function LoginPage() {
         description: "Access granted to secure dashboard.",
       });
 
+      // Use window.location.href to ensure a clean state and trigger redirection logic properly
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);

@@ -1,7 +1,9 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
+import { ChibiCompanion } from '@/components/ui/chibi-companion';
 
 export const metadata: Metadata = {
   title: 'ResQMate | Humanitarian Relief Coordination',
@@ -24,6 +26,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <Toaster />
+          <ChibiCompanion />
         </AuthProvider>
       </body>
     </html>
