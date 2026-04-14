@@ -5,17 +5,19 @@ A platform connecting NGOs and volunteers for rapid response relief operations.
 
 ## SMTP Setup (Admin Portal)
 
-To enable real OTP emails for the Developer Admin Portal:
+To enable real OTP emails for the Developer Admin Portal using Gmail:
 
 1. **Gmail Setup**:
-   - Go to your Google Account Settings.
-   - Enable **2-Step Verification**.
-   - Search for **"App Passwords"**.
-   - Create a new App Password named "ResQMate".
-   - Copy the 16-character code.
+   - Go to your [Google Account Settings](https://myaccount.google.com/).
+   - Navigate to **Security**.
+   - Enable **2-Step Verification** (this is mandatory for App Passwords).
+   - Search for **"App Passwords"** in the top search bar.
+   - Create a new App Password:
+     - Name: `ResQMate Admin`
+   - Copy the **16-character code** (e.g., `abcd efgh ijkl mnop`).
 
 2. **Environment Variables**:
-   Update your `.env` file with:
+   Update your `.env` file with these exact values:
    ```env
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=465

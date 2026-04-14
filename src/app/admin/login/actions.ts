@@ -21,7 +21,7 @@ export async function sendEmailOTP(email: string, otp: string) {
 
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE } = process.env;
 
-  // Check if SMTP credentials are set
+  // Check if critical SMTP credentials are set
   if (!SMTP_USER || !SMTP_PASS || !SMTP_HOST) {
     console.warn("CRITICAL: SMTP credentials missing in .env. Logging OTP to console for development bypass:");
     console.log(`[AUTH] OTP for ${email}: ${otp}`);
@@ -34,7 +34,7 @@ export async function sendEmailOTP(email: string, otp: string) {
     secure: SMTP_SECURE === 'true',
     auth: {
       user: SMTP_USER,
-      pass: SMTP_PASS,
+      pass: SMTP_PASS.replace(/\s/g, ''), // Remove spaces from App Password if present
     },
   });
 
@@ -61,8 +61,8 @@ export async function sendEmailOTP(email: string, otp: string) {
   try {
     await transporter.sendMail(mailOptions);
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Mail Send Error:", error);
-    throw new Error("Failed to deliver verification code via email.");
+    throw new Error(`Failed to deliver verification code: ${error.message}`);
   }
 }
