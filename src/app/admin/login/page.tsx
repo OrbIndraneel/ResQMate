@@ -1,17 +1,17 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldAlert, Loader2, Send, KeyRound } from 'lucide-react';
+import { ShieldAlert, Loader2, Send, KeyRound, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { auth, db } from '@/lib/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { sendEmailOTP } from './actions';
 
 const ADMIN_WHITELIST = [
   "indraneelmandal0387@gmail.com",
@@ -25,6 +25,7 @@ export default function AdminLoginPage() {
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [generatedOtp, setGeneratedOtp] = useState('');
+  const [smtpWarning, setSmtpWarning] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -40,18 +41,36 @@ export default function AdminLoginPage() {
     }
 
     setLoading(true);
-    // Simulate OTP sending
     const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(mockOtp);
     
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const result = await sendEmailOTP(email, mockOtp);
+      
+      if (result?.error === "SMTP_MISSING") {
+        setSmtpWarning(true);
+        toast({
+          variant: "destructive",
+          title: "SMTP Not Configured",
+          description: "Check server console for the code. Email couldn't be sent.",
+        });
+      } else {
+        toast({
+          title: "Code Sent",
+          description: `Verification email sent to ${email}`,
+        });
+      }
+      
       setStep('otp');
+    } catch (error: any) {
       toast({
-        title: "Verification Code Sent",
-        description: `DEBUG ONLY: Your code is ${mockOtp}`,
+        variant: "destructive",
+        title: "Dispatch Error",
+        description: error.message,
       });
-    }, 1500);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
@@ -67,9 +86,6 @@ export default function AdminLoginPage() {
 
     setLoading(true);
     try {
-      // For the prototype, we use a fixed admin password or handle auth session
-      // In a real app, this would use Firebase Email Link or a custom OTP function
-      // Here we'll ensure an admin record exists in the database
       const adminRef = doc(db, 'admins', email.toLowerCase());
       const adminDoc = await getDoc(adminRef);
 
@@ -117,6 +133,16 @@ export default function AdminLoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {smtpWarning && (
+            <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-start gap-3 text-xs">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <div>
+                <p className="font-bold mb-1">Dev Note:</p>
+                SMTP credentials not found in .env. The OTP was logged to the server terminal. In production, set SMTP_USER and SMTP_PASS.
+              </div>
+            </div>
+          )}
+
           {step === 'email' ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div className="space-y-2">
@@ -132,7 +158,7 @@ export default function AdminLoginPage() {
                 />
               </div>
               <Button type="submit" className="w-full h-11 font-bold" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Request Access Code</>}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Send Login Code</>}
               </Button>
             </form>
           ) : (
@@ -161,7 +187,7 @@ export default function AdminLoginPage() {
         </CardContent>
         <CardFooter className="text-center">
           <p className="text-[10px] text-slate-500 uppercase tracking-widest w-full">
-            Authorized Personnel Only • Secure Terminal
+            Authorized Personnel Only • ResQMate Core
           </p>
         </CardFooter>
       </Card>
