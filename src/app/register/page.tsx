@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams } from 'next/navigation';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, Upload, CheckCircle2 } from 'lucide-react';
+import { Shield, Loader2, Upload, CheckCircle2, Send, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +17,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { sendEmailOTP } from '../admin/login/actions';
 
 const VOLUNTEER_SKILLS = [
   "First Aid", "Nursing", "Heavy Lifting", "Logistics", "Driving", 
@@ -28,7 +30,11 @@ export default function RegisterPage() {
   const initialRole = searchParams.get('role') || 'volunteer';
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  
+  // Auth Steps
+  const [step, setStep] = useState<'details' | 'otp'>('details');
+  const [otp, setOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
   
   // Volunteer Fields
   const [firstName, setFirstName] = useState('');
@@ -79,7 +85,7 @@ export default function RegisterPage() {
     return `VOL-${new Date().getFullYear()}-${random}`;
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleStartRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (role === 'volunteer' && !volunteerProofBase64) {
@@ -95,6 +101,48 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(mockOtp);
+
+      const result = await sendEmailOTP(email, mockOtp, false);
+      
+      if (result?.error === "SMTP_MISSING") {
+        toast({
+          variant: "destructive",
+          title: "SMTP Not Configured",
+          description: "Developer Mode: Check server console for code.",
+        });
+      } else {
+        toast({
+          title: "Code Sent",
+          description: `Verification code sent to ${email}`,
+        });
+      }
+      
+      setStep('otp');
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Registration Failed", description: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinalVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp !== generatedOtp) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Code",
+        description: "The verification code is incorrect.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // For the prototype, we'll use the email as a temporary identifier
+      // In a real app, we'd complete the Firebase Auth createUser process here
+      const password = Math.random().toString(36).slice(-10); // Random generated password for prototype
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
@@ -104,7 +152,6 @@ export default function RegisterPage() {
       const volunteerId = role === 'volunteer' ? generateVolunteerId() : null;
       const finalPrimarySkill = primarySkill === 'Other' ? otherSkillText : primarySkill;
 
-      // Create detailed user document in Firestore
       const userData = {
         uid: user.uid,
         email,
@@ -141,7 +188,7 @@ export default function RegisterPage() {
 
       router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Registration Failed", description: error.message });
+      toast({ variant: "destructive", title: "Verification Failed", description: error.message });
     } finally {
       setLoading(false);
     }
@@ -156,153 +203,141 @@ export default function RegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Join ResQMate</CardTitle>
           <CardDescription>
-            Help coordinate humanitarian efforts across the globe.
+            {step === 'details' ? "Help coordinate humanitarian efforts across the globe." : "Verify your identity to complete registration."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue={initialRole} onValueChange={setRole} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
-              <TabsTrigger value="ngo">NGO Admin</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="volunteer">
-              <form onSubmit={handleRegister} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+          {step === 'details' ? (
+            <Tabs defaultValue={initialRole} onValueChange={setRole} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
+                <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
+                <TabsTrigger value="ngo">NGO Admin</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="volunteer">
+                <form onSubmit={handleStartRegistration} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="v-first">First Name</Label>
+                      <Input id="v-first" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="v-last">Last Name</Label>
+                      <Input id="v-last" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="v-first">First Name</Label>
-                    <Input id="v-first" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                    <Label htmlFor="v-profession">Profession</Label>
+                    <Input id="v-profession" placeholder="e.g. Registered Nurse, Logistics Expert" required value={profession} onChange={(e) => setProfession(e.target.value)} />
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="v-last">Last Name</Label>
-                    <Input id="v-last" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                    <Label>Primary Expertise</Label>
+                    <Select onValueChange={setPrimarySkill} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your main skill" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VOLUNTEER_SKILLS.map(skill => (
+                          <SelectItem key={skill} value={skill}>{skill}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="v-profession">Profession</Label>
-                  <Input id="v-profession" placeholder="e.g. Registered Nurse, Logistics Expert" required value={profession} onChange={(e) => setProfession(e.target.value)} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Primary Expertise</Label>
-                  <Select onValueChange={setPrimarySkill} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your main skill" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VOLUNTEER_SKILLS.map(skill => (
-                        <SelectItem key={skill} value={skill}>{skill}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {primarySkill === 'Other' && (
-                    <Input 
-                      className="mt-2" 
-                      placeholder="Please specify your skill" 
-                      required 
-                      value={otherSkillText}
-                      onChange={(e) => setOtherSkillText(e.target.value)}
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <Label>Additional Skills</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {VOLUNTEER_SKILLS.filter(s => s !== 'Other').map(skill => (
-                      <div key={skill} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`skill-${skill}`} 
-                          checked={selectedAdditionalSkills.includes(skill)}
-                          onCheckedChange={() => toggleAdditionalSkill(skill)}
-                        />
-                        <label htmlFor={`skill-${skill}`} className="text-xs font-medium cursor-pointer">
-                          {skill}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="v-proof">Professional ID / Certification (JPEG)</Label>
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
-                    <input id="v-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'volunteer')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {volunteerProofBase64 ? (
-                      <div className="flex items-center text-primary gap-2">
-                        <CheckCircle2 className="h-8 w-8" />
-                        <span className="text-sm font-medium">Document Uploaded</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center text-muted-foreground gap-2">
-                        <Upload className="h-8 w-8" />
-                        <span className="text-sm">Upload Professional Proof</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="v-email">Email</Label>
+                    <Label htmlFor="v-proof">Professional ID / Certification (JPEG)</Label>
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
+                      <input id="v-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'volunteer')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                      {volunteerProofBase64 ? (
+                        <div className="flex items-center text-primary gap-2">
+                          <CheckCircle2 className="h-8 w-8" />
+                          <span className="text-sm font-medium">Document Uploaded</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center text-muted-foreground gap-2">
+                          <Upload className="h-8 w-8" />
+                          <span className="text-sm">Upload Professional Proof</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="v-email">Email Address</Label>
                     <Input id="v-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="v-password">Password</Label>
-                    <Input id="v-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                  </div>
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register as Volunteer"}
-                </Button>
-              </form>
-            </TabsContent>
+                  
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify Email & Register</>}
+                  </Button>
+                </form>
+              </TabsContent>
 
-            <TabsContent value="ngo">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="n-org">Organization Name</Label>
-                  <Input id="n-org" placeholder="e.g. Hope Relief International" required value={orgName} onChange={(e) => setOrgName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="n-location">Headquarters / Main Location</Label>
-                  <Input id="n-location" placeholder="City, Country" required value={orgLocation} onChange={(e) => setOrgLocation(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="n-proof">Proof of NGO Existence (JPEG)</Label>
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
-                    <input id="n-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'ngo')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                    {orgProofBase64 ? (
-                      <div className="flex items-center text-secondary gap-2">
-                        <CheckCircle2 className="h-8 w-8" />
-                        <span className="text-sm font-medium">NGO Proof Uploaded</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center text-muted-foreground gap-2">
-                        <Upload className="h-8 w-8" />
-                        <span className="text-sm">Upload NGO Certification</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="ngo">
+                <form onSubmit={handleStartRegistration} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="n-email">Admin Email</Label>
+                    <Label htmlFor="n-org">Organization Name</Label>
+                    <Input id="n-org" placeholder="e.g. Hope Relief International" required value={orgName} onChange={(e) => setOrgName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="n-location">Headquarters / Main Location</Label>
+                    <Input id="n-location" placeholder="City, Country" required value={orgLocation} onChange={(e) => setOrgLocation(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="n-proof">Proof of NGO Existence (JPEG)</Label>
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors cursor-pointer relative">
+                      <input id="n-proof" type="file" accept="image/jpeg" onChange={(e) => handleFileChange(e, 'ngo')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                      {orgProofBase64 ? (
+                        <div className="flex items-center text-secondary gap-2">
+                          <CheckCircle2 className="h-8 w-8" />
+                          <span className="text-sm font-medium">NGO Proof Uploaded</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center text-muted-foreground gap-2">
+                          <Upload className="h-8 w-8" />
+                          <span className="text-sm">Upload NGO Certification</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="n-email">Admin Email Address</Label>
                     <Input id="n-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="n-password">Password</Label>
-                    <Input id="n-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading}>
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Register NGO Admin"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                  <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify Email & Register</>}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <form onSubmit={handleFinalVerify} className="space-y-6">
+              <div className="bg-primary/5 p-4 rounded-lg text-center mb-6">
+                <p className="text-sm text-primary font-medium">Verification code sent to: <span className="font-bold">{email}</span></p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reg-otp">6-Digit Code</Label>
+                <Input 
+                  id="reg-otp" 
+                  type="text" 
+                  placeholder="000000" 
+                  required 
+                  maxLength={6}
+                  className="text-center text-2xl tracking-[0.5em] font-mono"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><KeyRound className="mr-2 h-4 w-4" /> Complete Registration</>}
+              </Button>
+              <Button variant="ghost" type="button" className="w-full text-muted-foreground" onClick={() => setStep('details')}>
+                Back to Details
+              </Button>
+            </form>
+          )}
         </CardContent>
         <CardFooter className="flex justify-center border-t pt-6">
           <div className="text-sm text-muted-foreground">

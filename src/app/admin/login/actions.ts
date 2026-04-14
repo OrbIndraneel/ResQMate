@@ -10,12 +10,15 @@ const ADMIN_WHITELIST = [
 ];
 
 /**
- * Sends an OTP to the authorized developer email using SMTP.
+ * Sends an OTP to any email using SMTP.
+ * @param email - Recipient email
+ * @param otp - 6-digit code
+ * @param isAdmin - If true, enforces the developer whitelist
  */
-export async function sendEmailOTP(email: string, otp: string) {
+export async function sendEmailOTP(email: string, otp: string, isAdmin: boolean = false) {
   const lowerEmail = email.toLowerCase();
   
-  if (!ADMIN_WHITELIST.includes(lowerEmail)) {
+  if (isAdmin && !ADMIN_WHITELIST.includes(lowerEmail)) {
     throw new Error("Unauthorized access attempt.");
   }
 
@@ -34,26 +37,25 @@ export async function sendEmailOTP(email: string, otp: string) {
     secure: SMTP_SECURE === 'true',
     auth: {
       user: SMTP_USER,
-      pass: SMTP_PASS.replace(/\s/g, ''), // Remove spaces from App Password if present
+      pass: SMTP_PASS.replace(/\s/g, ''),
     },
   });
 
   const mailOptions = {
     from: `"ResQMate Security" <${SMTP_USER}>`,
     to: lowerEmail,
-    subject: 'ResQMate Admin Verification Code',
-    text: `Your one-time password for the Admin Gateway is: ${otp}`,
+    subject: isAdmin ? 'ResQMate Admin Verification Code' : 'ResQMate Verification Code',
+    text: `Your verification code is: ${otp}`,
     html: `
       <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #1e293b; text-align: center;">Admin Verification Required</h2>
-        <p>A login attempt was made for the <strong>ResQMate Developer Portal</strong>.</p>
+        <h2 style="color: #1e293b; text-align: center;">Identity Verification</h2>
+        <p>A verification attempt was made for <strong>${lowerEmail}</strong> on the ResQMate platform.</p>
         <div style="background: #f1f5f9; padding: 30px; border-radius: 8px; text-align: center; margin: 20px 0;">
           <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #0f172a; font-family: monospace;">${otp}</span>
         </div>
-        <p style="font-size: 14px; line-height: 1.5;">Enter this code in the portal to continue. This code will expire shortly.</p>
-        <p style="font-size: 12px; color: #64748b; margin-top: 30px;">If you did not request this code, please secure your account immediately.</p>
+        <p style="font-size: 14px; line-height: 1.5;">Enter this code in the app to continue. This code will expire shortly.</p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin-top: 30px;">
-        <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; text-align: center; letter-spacing: 1px;">Secure Terminal • ResQMate Operations</p>
+        <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; text-align: center; letter-spacing: 1px;">ResQMate Operations • Secure Channel</p>
       </div>
     `,
   };
