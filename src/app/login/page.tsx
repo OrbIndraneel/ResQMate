@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, LogIn, Eye, EyeOff, User, Building2, ChevronLeft, Lock } from 'lucide-react';
+import { Shield, Loader2, LogIn, Eye, EyeOff, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
@@ -29,6 +29,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // First verify the role matches what is in Firestore
       const q = query(
         collection(db, 'users'), 
         where('email', '==', email.toLowerCase()),
@@ -39,27 +40,28 @@ export default function LoginPage() {
       if (querySnapshot.empty) {
         toast({
           variant: "destructive",
-          title: "Account Not Found",
-          description: `No ${role === 'ngo' ? 'NGO' : 'Volunteer'} account is registered with this email.`,
+          title: "Access Denied",
+          description: `No ${role === 'ngo' ? 'NGO' : 'Volunteer'} account found for this email.`,
         });
         setLoading(false);
         return;
       }
 
+      // Then sign in with Firebase Auth
       await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
 
       toast({
-        title: "Login Successful",
-        description: "Access granted to secure dashboard.",
+        title: "Access Granted",
+        description: "Welcome to the ResQMate network.",
       });
 
-      // Use window.location.href to ensure a clean state and trigger redirection logic properly
+      // Redirect based on role
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);
       let errorMsg = "Verification failed. Check your credentials.";
       
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
         errorMsg = "The email or password you entered is incorrect.";
       }
 
@@ -81,11 +83,11 @@ export default function LoginPage() {
         <span className="font-headline font-black text-2xl tracking-tighter">ResQMate</span>
       </Link>
       
-      <Card className="w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-none rounded-3xl overflow-hidden">
+      <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl overflow-hidden">
         <CardHeader className="space-y-2 text-center pb-8 pt-10">
-          <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Welcome Back</CardTitle>
-          <CardDescription className="text-slate-500">
-            Sign in to continue your humanitarian mission.
+          <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Sign In</CardTitle>
+          <CardDescription className="text-slate-500 font-medium">
+            Access your mission control dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-8">
@@ -101,28 +103,28 @@ export default function LoginPage() {
             
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-bold ml-1">Email Address</Label>
+                <Label htmlFor="email" className="text-slate-700 font-bold ml-1">Email</Label>
                 <Input 
                   id="email" 
                   type="email" 
                   placeholder="name@organization.org" 
                   required 
-                  className="h-12 px-4 rounded-xl border-slate-200 focus:ring-primary/20"
+                  className="h-12 px-4 rounded-xl border-slate-200"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <Label htmlFor="password" title="Password must be at least 6 characters" className="text-slate-700 font-bold">Password</Label>
-                  <Link href="#" className="text-xs text-primary font-bold hover:underline">Forgot access?</Link>
+                  <Label htmlFor="password" className="text-slate-700 font-bold">Password</Label>
+                  <Link href="#" className="text-xs text-primary font-bold hover:underline">Forgot?</Link>
                 </div>
                 <div className="relative">
                   <Input 
                     id="password" 
                     type={showPassword ? "text" : "password"} 
                     required 
-                    className="h-12 px-4 rounded-xl border-slate-200 focus:ring-primary/20"
+                    className="h-12 px-4 rounded-xl border-slate-200"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
@@ -157,7 +159,7 @@ export default function LoginPage() {
       </Card>
       
       <p className="mt-8 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-        <Lock className="h-3 w-3" /> Encrypted RSA-256 Protocol
+        <Lock className="h-3 w-3" /> Secure RSA-256 Protocol
       </p>
     </div>
   );

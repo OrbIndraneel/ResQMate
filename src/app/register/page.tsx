@@ -105,9 +105,8 @@ export default function RegisterPage() {
       
       if (result?.error === "SMTP_MISSING") {
         toast({
-          variant: "destructive",
-          title: "SMTP Not Configured",
-          description: "Developer Mode: Check server console for code.",
+          title: "Developer Mode",
+          description: "Check server console for your verification code.",
         });
       } else {
         toast({
@@ -150,7 +149,7 @@ export default function RegisterPage() {
             user = signInResult.user;
           } catch (signInError: any) {
             if (signInError.code === 'auth/invalid-credential' || signInError.code === 'auth/wrong-password') {
-              throw new Error("This email is already registered with a different password. Please use your previous password or log in.");
+              throw new Error("This email is already in our security system but with a different password. Please log in using your original password.");
             }
             throw signInError;
           }
@@ -159,7 +158,7 @@ export default function RegisterPage() {
         }
       }
       
-      if (!user) throw new Error("Could not establish user session.");
+      if (!user) throw new Error("Could not establish session.");
 
       const displayName = role === 'volunteer' ? `${firstName} ${lastName}` : orgName;
       await updateProfile(user, { displayName });
@@ -201,6 +200,7 @@ export default function RegisterPage() {
           : "Your NGO profile has been created and is pending verification.",
       });
 
+      // Use a hard redirect to ensure Auth state is fully realized across the app
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       toast({ variant: "destructive", title: "Verification Failed", description: error.message });
@@ -304,8 +304,8 @@ export default function RegisterPage() {
                     </div>
                   </div>
                   
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify Email & Register</>}
+                  <Button type="submit" className="w-full h-12" disabled={loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify & Register</>}
                   </Button>
                 </form>
               </TabsContent>
@@ -364,8 +364,8 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading}>
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify Email & Register</>}
+                  <Button type="submit" className="w-full h-12 bg-secondary text-secondary-foreground" disabled={loading}>
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify & Register</>}
                   </Button>
                 </form>
               </TabsContent>
