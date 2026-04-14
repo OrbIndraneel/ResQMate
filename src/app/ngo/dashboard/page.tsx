@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, BarChart3, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, BarChart3, TrendingUp, Calendar, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
