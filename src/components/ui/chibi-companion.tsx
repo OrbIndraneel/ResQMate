@@ -16,6 +16,7 @@ export function ChibiCompanion() {
     ngos: 0
   });
   const [mood, setMood] = useState(0);
+  const [lastSync, setLastSync] = useState<string>('');
 
   const moods = [
     { icon: Bot, label: "Scanning network...", color: "text-blue-500", bg: "bg-blue-50" },
@@ -25,6 +26,9 @@ export function ChibiCompanion() {
   ];
 
   useEffect(() => {
+    // Set initial client-side time to avoid hydration mismatch
+    setLastSync(new Date().toLocaleTimeString());
+
     // Real-time stats syncing
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const docs = snapshot.docs.map(d => d.data());
@@ -33,6 +37,7 @@ export function ChibiCompanion() {
         volunteers: docs.filter(u => u.role === 'volunteer').length,
         ngos: docs.filter(u => u.role === 'ngo').length
       }));
+      setLastSync(new Date().toLocaleTimeString());
     });
 
     const unsubTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
@@ -42,6 +47,7 @@ export function ChibiCompanion() {
         tasks: docs.length,
         activeTasks: docs.filter(t => t.status === 'open').length
       }));
+      setLastSync(new Date().toLocaleTimeString());
     });
 
     const moodInterval = setInterval(() => {
@@ -107,7 +113,7 @@ export function ChibiCompanion() {
 
         <div className="mt-6 pt-4 border-t border-slate-50">
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] text-center">
-            Last Sync: {new Date().toLocaleTimeString()}
+            Last Sync: {lastSync || '--:--:--'}
           </p>
         </div>
       </div>
