@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, Send, KeyRound } from 'lucide-react';
+import { Shield, Loader2, Send, KeyRound, User, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { sendEmailOTP } from '../admin/login/actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [role, setRole] = useState<string>('volunteer');
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,15 +30,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // First, verify the user exists
-      const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+      // Verify user exists with the selected role
+      const q = query(
+        collection(db, 'users'), 
+        where('email', '==', email.toLowerCase()),
+        where('role', '==', role)
+      );
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         toast({
           variant: "destructive",
           title: "Account Not Found",
-          description: "No ResQMate account is registered with this email.",
+          description: `No ${role === 'ngo' ? 'NGO' : 'Volunteer'} account is registered with this email.`,
         });
         setLoading(false);
         return;
@@ -85,7 +91,11 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
+      const q = query(
+        collection(db, 'users'), 
+        where('email', '==', email.toLowerCase()),
+        where('role', '==', role)
+      );
       const querySnapshot = await getDocs(q);
       const userData = querySnapshot.docs[0].data();
 
@@ -119,29 +129,47 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">ResQMate Login</CardTitle>
           <CardDescription>
-            {step === 'email' ? "Enter your email to receive a secure code." : "Enter the 6-digit code sent to your inbox."}
+            {step === 'email' 
+              ? "Select your role and enter your email." 
+              : "Enter the 6-digit code sent to your inbox."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {step === 'email' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@organization.org" 
-                  required 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Send Login Code</>}
-              </Button>
-            </form>
+            <Tabs defaultValue="volunteer" onValueChange={setRole} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="volunteer" className="flex items-center gap-2">
+                  <User className="h-4 w-4" /> Volunteer
+                </TabsTrigger>
+                <TabsTrigger value="ngo" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> NGO Admin
+                </TabsTrigger>
+              </TabsList>
+              
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder={role === 'ngo' ? "admin@organization.org" : "yourname@email.com"} 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" className="w-full h-11" disabled={loading}>
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Send Login Code</>}
+                </Button>
+              </form>
+            </Tabs>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="bg-primary/5 p-3 rounded-lg text-center mb-4">
+                <p className="text-xs text-primary font-medium">
+                  Verifying <span className="font-bold">{role.toUpperCase()}</span> access for {email}
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="otp">Verification Code</Label>
                 <Input 
@@ -150,16 +178,16 @@ export default function LoginPage() {
                   placeholder="000000" 
                   required 
                   maxLength={6}
-                  className="text-center text-xl tracking-[0.5em] font-mono"
+                  className="text-center text-xl tracking-[0.5em] font-mono h-12"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full bg-primary" disabled={loading}>
+              <Button type="submit" className="w-full h-11 bg-primary" disabled={loading}>
                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><KeyRound className="mr-2 h-4 w-4" /> Verify & Login</>}
               </Button>
               <Button variant="ghost" type="button" className="w-full text-muted-foreground" onClick={() => setStep('email')}>
-                Back to Email
+                Back to Role Selection
               </Button>
             </form>
           )}
