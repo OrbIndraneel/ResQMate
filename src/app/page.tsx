@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Zap, Users, Heart } from 'lucide-react';
+import { Shield, Zap, Users, Heart, Lock } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
@@ -107,8 +107,15 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">© 2024 ResQMate. Dedicated to Humanitarian Excellence.</p>
+      <footer className="flex flex-col gap-4 sm:flex-row py-8 w-full shrink-0 items-center px-4 md:px-6 border-t bg-muted/30">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs text-muted-foreground">© 2024 ResQMate. Dedicated to Humanitarian Excellence.</p>
+          <div className="flex gap-4">
+            <Link className="text-[10px] text-primary hover:underline flex items-center gap-1 font-bold" href="/admin/verify">
+              <Lock className="h-3 w-3" /> Developer Admin Portal
+            </Link>
+          </div>
+        </div>
         <nav className="sm:ml-auto flex gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="#">
             Terms of Service
