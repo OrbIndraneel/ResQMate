@@ -10,10 +10,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Shield, Loader2, Send, KeyRound, User, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { sendEmailOTP } from '../admin/login/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Internal consistent password for prototype authentication
+const PROTO_PWD = "ResQMate-Internal-Auth-2024";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -91,20 +95,15 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'users'), 
-        where('email', '==', email.toLowerCase()),
-        where('role', '==', role)
-      );
-      const querySnapshot = await getDocs(q);
-      const userData = querySnapshot.docs[0].data();
+      // Officially sign in with Firebase Auth to establish a session
+      await signInWithEmailAndPassword(auth, email, PROTO_PWD);
 
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${userData.organizationName || userData.firstName}.`,
+        description: "Welcome back to ResQMate.",
       });
 
-      if (userData.role === 'ngo') {
+      if (role === 'ngo') {
         router.push('/ngo/dashboard');
       } else {
         router.push('/volunteer/dashboard');
@@ -112,8 +111,8 @@ export default function LoginPage() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Login Error",
-        description: error.message,
+        title: "Authentication Error",
+        description: "Failed to establish a secure session. Please try again.",
       });
     } finally {
       setLoading(false);

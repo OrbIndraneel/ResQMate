@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, limit, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit, doc } from 'firebase/firestore';
 
 export default function VolunteerDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -21,16 +24,18 @@ export default function VolunteerDashboard() {
   const MILESTONE = 1000;
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-    // Fetch user profile stats in real-time
     const profileUnsubscribe = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       }
     });
 
-    // Fetch available tasks
     const q = query(
       collection(db, 'tasks'),
       where('status', '==', 'open'),
@@ -44,15 +49,18 @@ export default function VolunteerDashboard() {
       }));
       setTasks(taskList);
       setLoading(false);
+    }, (error) => {
+      console.error("Firestore Error:", error);
+      setLoading(false);
     });
 
     return () => {
       profileUnsubscribe();
       tasksUnsubscribe();
     };
-  }, [user]);
+  }, [user, authLoading, router]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

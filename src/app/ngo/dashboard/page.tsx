@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +14,8 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function NGODashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -23,9 +26,12 @@ export default function NGODashboard() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-    // We removed orderBy from the query to avoid the need for a composite index
     const q = query(
       collection(db, 'tasks'),
       where('creatorId', '==', user.uid)
@@ -36,7 +42,6 @@ export default function NGODashboard() {
         id: doc.id,
         ...doc.data()
       })).sort((a: any, b: any) => {
-        // Client-side sorting by creation date
         const dateA = a.createdAt?.seconds || 0;
         const dateB = b.createdAt?.seconds || 0;
         return dateB - dateA;
@@ -55,12 +60,15 @@ export default function NGODashboard() {
       });
       
       setLoading(false);
+    }, (error) => {
+      console.error("Firestore Error:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, authLoading, router]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

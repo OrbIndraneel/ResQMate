@@ -13,10 +13,8 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { sendEmailOTP } from '../admin/login/actions';
 
 const VOLUNTEER_SKILLS = [
@@ -24,6 +22,9 @@ const VOLUNTEER_SKILLS = [
   "Translation", "IT Support", "Cooking", "Construction", 
   "Counseling", "Security", "Search & Rescue", "Other"
 ];
+
+// Internal consistent password for prototype authentication
+const PROTO_PWD = "ResQMate-Internal-Auth-2024";
 
 export default function RegisterPage() {
   const searchParams = useSearchParams();
@@ -72,12 +73,6 @@ export default function RegisterPage() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const toggleAdditionalSkill = (skill: string) => {
-    setSelectedAdditionalSkills(prev => 
-      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
-    );
   };
 
   const generateVolunteerId = () => {
@@ -140,10 +135,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      // For the prototype, we'll use the email as a temporary identifier
-      // In a real app, we'd complete the Firebase Auth createUser process here
-      const password = Math.random().toString(36).slice(-10); // Random generated password for prototype
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, PROTO_PWD);
       const user = userCredential.user;
       
       const displayName = role === 'volunteer' ? `${firstName} ${lastName}` : orgName;
@@ -154,7 +146,7 @@ export default function RegisterPage() {
 
       const userData = {
         uid: user.uid,
-        email,
+        email: email.toLowerCase(),
         role: role,
         createdAt: new Date().toISOString(),
         verificationStatus: 'pending',
