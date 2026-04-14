@@ -16,6 +16,7 @@ import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { sendEmailOTP } from '../admin/login/actions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const VOLUNTEER_SKILLS = [
   "First Aid", "Nursing", "Heavy Lifting", "Logistics", "Driving", 
@@ -135,8 +136,19 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, PROTO_PWD);
-      const user = userCredential.user;
+      let user;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, PROTO_PWD);
+        user = userCredential.user;
+      } catch (authError: any) {
+        if (authError.code === 'auth/email-already-in-use') {
+          // If already in auth, just sign in
+          const userCredential = await signInWithEmailAndPassword(auth, email, PROTO_PWD);
+          user = userCredential.user;
+        } else {
+          throw authError;
+        }
+      }
       
       const displayName = role === 'volunteer' ? `${firstName} ${lastName}` : orgName;
       await updateProfile(user, { displayName });

@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { sendEmailOTP } from '../admin/login/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -95,8 +95,18 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      // Officially sign in with Firebase Auth to establish a session
-      await signInWithEmailAndPassword(auth, email, PROTO_PWD);
+      // Attempt to sign in
+      try {
+        await signInWithEmailAndPassword(auth, email, PROTO_PWD);
+      } catch (signInError: any) {
+        // If user exists in Firestore but not in Auth (common in prototype migration)
+        // create the Auth record on the fly since OTP is already verified.
+        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+          await createUserWithEmailAndPassword(auth, email, PROTO_PWD);
+        } else {
+          throw signInError;
+        }
+      }
 
       toast({
         title: "Login Successful",
@@ -109,6 +119,7 @@ export default function LoginPage() {
         router.push('/volunteer/dashboard');
       }
     } catch (error: any) {
+      console.error("Auth Error:", error);
       toast({
         variant: "destructive",
         title: "Authentication Error",
