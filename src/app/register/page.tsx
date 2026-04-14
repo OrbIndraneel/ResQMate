@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, Upload, CheckCircle2, Send, KeyRound } from 'lucide-react';
+import { Shield, Loader2, Upload, CheckCircle2, Send, KeyRound, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,13 +24,13 @@ const VOLUNTEER_SKILLS = [
   "Counseling", "Security", "Search & Rescue", "Other"
 ];
 
-const PROTO_PWD = "ResQMate-Internal-Auth-2024";
-
 export default function RegisterPage() {
   const searchParams = useSearchParams();
   const initialRole = searchParams.get('role') || 'volunteer';
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const [otp, setOtp] = useState('');
@@ -89,6 +89,11 @@ export default function RegisterPage() {
       toast({ variant: "destructive", title: "Proof Required", description: "Please upload proof of NGO existence." });
       return;
     }
+
+    if (password.length < 6) {
+      toast({ variant: "destructive", title: "Weak Password", description: "Password must be at least 6 characters." });
+      return;
+    }
     
     setLoading(true);
 
@@ -136,17 +141,11 @@ export default function RegisterPage() {
     try {
       let user;
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
+        const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
         user = userCredential.user;
       } catch (authError: any) {
         if (authError.code === 'auth/email-already-in-use') {
-          // If account exists, try to sign in
-          try {
-            const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
-            user = userCredential.user;
-          } catch (signInError: any) {
-            throw new Error("This email is already registered but could not be logged in with the standard credentials. Please try logging in directly.");
-          }
+           throw new Error("This email is already registered. Please log in instead.");
         } else {
           throw authError;
         }
@@ -192,7 +191,6 @@ export default function RegisterPage() {
           : "Your NGO profile has been created and is pending verification.",
       });
 
-      // Force refresh navigation
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       toast({ variant: "destructive", title: "Verification Failed", description: error.message });
@@ -270,9 +268,30 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="v-email">Email Address</Label>
-                    <Input id="v-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <div className="space-y-4 pt-2 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="v-email">Email Address</Label>
+                      <Input id="v-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="v-password">Create Password</Label>
+                      <div className="relative">
+                        <Input 
+                          id="v-password" 
+                          type={showPassword ? "text" : "password"} 
+                          required 
+                          value={password} 
+                          onChange={(e) => setPassword(e.target.value)} 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   
                   <Button type="submit" className="w-full" disabled={loading}>
@@ -308,10 +327,33 @@ export default function RegisterPage() {
                       )}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="n-email">Admin Email Address</Label>
-                    <Input id="n-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  
+                  <div className="space-y-4 pt-2 border-t">
+                    <div className="space-y-2">
+                      <Label htmlFor="n-email">Admin Email Address</Label>
+                      <Input id="n-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="n-password">Admin Password</Label>
+                      <div className="relative">
+                        <Input 
+                          id="n-password" 
+                          type={showPassword ? "text" : "password"} 
+                          required 
+                          value={password} 
+                          onChange={(e) => setPassword(e.target.value)} 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
+
                   <Button type="submit" className="w-full bg-secondary text-secondary-foreground" disabled={loading}>
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Verify Email & Register</>}
                   </Button>

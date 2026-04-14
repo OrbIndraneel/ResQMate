@@ -7,32 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Loader2, Send, KeyRound, User, Building2 } from 'lucide-react';
+import { Shield, Loader2, LogIn, Eye, EyeOff, User, Building2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { sendEmailOTP } from '../admin/login/actions';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const PROTO_PWD = "ResQMate-Internal-Auth-2024";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<string>('volunteer');
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // 1. Check if user exists in Firestore with the selected role
       const q = query(
         collection(db, 'users'), 
         where('email', '==', email.toLowerCase()),
@@ -50,90 +47,30 @@ export default function LoginPage() {
         return;
       }
 
-      const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setGeneratedOtp(mockOtp);
-
-      const result = await sendEmailOTP(email, mockOtp, false);
-      
-      if (result?.error === "SMTP_MISSING") {
-        toast({
-          variant: "destructive",
-          title: "SMTP Not Configured",
-          description: "Developer Mode: Check server console for code.",
-        });
-      } else {
-        toast({
-          title: "Code Sent",
-          description: `Verification code sent to ${email}`,
-        });
-      }
-      
-      setStep('otp');
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp !== generatedOtp) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Code",
-        description: "The verification code is incorrect.",
-      });
-      return;
-    }
-
-    setLoading(true);
-    const normalizedEmail = email.toLowerCase();
-    
-    try {
-      try {
-        // Try standard sign in
-        await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
-      } catch (signInError: any) {
-        // Handle newer Firebase obfuscated error codes and standard ones
-        const isCredError = signInError.code === 'auth/user-not-found' || 
-                           signInError.code === 'auth/invalid-credential' || 
-                           signInError.code === 'auth/wrong-password';
-
-        if (isCredError) {
-          try {
-            // If sign in fails, try to create the account if it's a new auth user
-            await createUserWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
-          } catch (createError: any) {
-            // If create fails because it exists, we have a true password mismatch for the proto password
-            if (createError.code === 'auth/email-already-in-use') {
-              throw new Error("Identity conflict: This email is registered but the internal credentials do not match. Please contact support.");
-            } else {
-              throw createError;
-            }
-          }
-        } else {
-          throw signInError;
-        }
-      }
+      // 2. Sign in with Firebase Auth
+      await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
 
       toast({
         title: "Login Successful",
         description: "Welcome back to ResQMate.",
       });
 
-      // Force a clean navigation to ensure auth context updates
+      // 3. Redirect to appropriate dashboard
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);
+      let errorMsg = "Failed to establish a secure session.";
+      
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        errorMsg = "Incorrect email or password. Please try again.";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMsg = "No account found with this email.";
+      }
+
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: error.message || "Failed to establish a secure session.",
+        description: errorMsg,
       });
       setLoading(false);
     }
@@ -148,68 +85,59 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">ResQMate Login</CardTitle>
           <CardDescription>
-            {step === 'email' 
-              ? "Select your role and enter your email." 
-              : "Enter the 6-digit code sent to your inbox."}
+            Enter your credentials to access your dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 'email' ? (
-            <Tabs defaultValue="volunteer" onValueChange={setRole} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="volunteer" className="flex items-center gap-2">
-                  <User className="h-4 w-4" /> Volunteer
-                </TabsTrigger>
-                <TabsTrigger value="ngo" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> NGO Admin
-                </TabsTrigger>
-              </TabsList>
-              
-              <form onSubmit={handleSendOtp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder={role === 'ngo' ? "admin@organization.org" : "yourname@email.com"} 
-                    required 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="w-full h-11" disabled={loading}>
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Send className="mr-2 h-4 w-4" /> Send Login Code</>}
-                </Button>
-              </form>
-            </Tabs>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="bg-primary/5 p-3 rounded-lg text-center mb-4">
-                <p className="text-xs text-primary font-medium">
-                  Verifying <span className="font-bold">{role.toUpperCase()}</span> access for {email}
-                </p>
-              </div>
+          <Tabs defaultValue="volunteer" onValueChange={setRole} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="volunteer" className="flex items-center gap-2">
+                <User className="h-4 w-4" /> Volunteer
+              </TabsTrigger>
+              <TabsTrigger value="ngo" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> NGO Admin
+              </TabsTrigger>
+            </TabsList>
+            
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="otp">Verification Code</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input 
-                  id="otp" 
-                  type="text" 
-                  placeholder="000000" 
+                  id="email" 
+                  type="email" 
+                  placeholder={role === 'ngo' ? "admin@organization.org" : "yourname@email.com"} 
                   required 
-                  maxLength={6}
-                  className="text-center text-xl tracking-[0.5em] font-mono h-12"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full h-11 bg-primary" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><KeyRound className="mr-2 h-4 w-4" /> Verify & Login</>}
-              </Button>
-              <Button variant="ghost" type="button" className="w-full text-muted-foreground" onClick={() => setStep('email')}>
-                Back to Role Selection
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                </div>
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button type="submit" className="w-full h-11" disabled={loading}>
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><LogIn className="mr-2 h-4 w-4" /> Secure Login</>}
               </Button>
             </form>
-          )}
+          </Tabs>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
