@@ -25,7 +25,9 @@ export default function VolunteerDashboard() {
 
   useEffect(() => {
     if (authLoading) return;
+
     if (!user) {
+      console.log("Volunteer Dashboard: No user found, redirecting to login");
       router.push('/login');
       return;
     }
@@ -34,6 +36,8 @@ export default function VolunteerDashboard() {
       if (docSnap.exists()) {
         setProfile(docSnap.data());
       }
+    }, (error) => {
+      console.error("Profile Sync Error:", error);
     });
 
     const q = query(
@@ -50,7 +54,7 @@ export default function VolunteerDashboard() {
       setTasks(taskList);
       setLoading(false);
     }, (error) => {
-      console.error("Firestore Error:", error);
+      console.error("Tasks Sync Error:", error);
       setLoading(false);
     });
 
@@ -60,13 +64,16 @@ export default function VolunteerDashboard() {
     };
   }, [user, authLoading, router]);
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && user)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-muted/10">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
+        <p className="text-sm text-muted-foreground animate-pulse">Scanning for nearby missions...</p>
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-muted/20">

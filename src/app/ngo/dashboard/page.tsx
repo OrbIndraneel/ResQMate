@@ -27,7 +27,9 @@ export default function NGODashboard() {
 
   useEffect(() => {
     if (authLoading) return;
+    
     if (!user) {
+      console.log("NGO Dashboard: No user found, redirecting to login");
       router.push('/login');
       return;
     }
@@ -61,20 +63,23 @@ export default function NGODashboard() {
       
       setLoading(false);
     }, (error) => {
-      console.error("Firestore Error:", error);
+      console.error("Firestore Task Sync Error:", error);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [user, authLoading, router]);
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && user)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-muted/10">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
+        <p className="text-sm text-muted-foreground animate-pulse">Syncing relief operations...</p>
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-muted/20">
