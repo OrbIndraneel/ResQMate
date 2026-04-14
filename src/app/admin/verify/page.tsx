@@ -5,54 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2, FlaskConical, Info } from 'lucide-react';
+import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// Mock data for previewing the UI without database entries
-const MOCK_PENDING_USERS = [
-  {
-    id: 'mock-1',
-    role: 'volunteer',
-    firstName: 'Sarah',
-    lastName: 'Connor',
-    email: 'sarah.c@example.com',
-    profession: 'Registered Nurse',
-    primarySkill: 'First Aid',
-    additionalSkills: ['Search & Rescue', 'Logistics'],
-    volunteerId: 'VOL-2024-8821',
-    proofImage: 'https://picsum.photos/seed/id1/800/600',
-    verificationStatus: 'pending'
-  },
-  {
-    id: 'mock-2',
-    role: 'ngo',
-    organizationName: 'Global Relief Network',
-    email: 'admin@grn.org',
-    location: 'Geneva, Switzerland',
-    proofImage: 'https://picsum.photos/seed/ngo-cert/800/600',
-    verificationStatus: 'pending'
-  }
-];
 
 export default function AdminVerifyPage() {
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isPreviewMode) {
-      setPendingUsers(MOCK_PENDING_USERS);
-      setLoading(false);
-      return;
-    }
-
     const q = query(
       collection(db, 'users'),
       where('verificationStatus', '==', 'pending')
@@ -68,21 +34,17 @@ export default function AdminVerifyPage() {
     }, (error) => {
       console.error("Firestore Error:", error);
       setLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Failed to sync with the verification database.",
+      });
     });
 
     return () => unsubscribe();
-  }, [isPreviewMode]);
+  }, [toast]);
 
   const handleVerify = async (userId: string, status: 'verified' | 'rejected') => {
-    if (isPreviewMode) {
-      toast({
-        title: "Preview Action",
-        description: `In a real scenario, user ${userId} would be ${status}.`,
-      });
-      setIsViewOpen(false);
-      return;
-    }
-
     try {
       await updateDoc(doc(db, 'users', userId), {
         verificationStatus: status,
@@ -114,16 +76,7 @@ export default function AdminVerifyPage() {
           <span className="font-bold text-xl">ResQMate Admin Portal</span>
         </div>
         <div className="ml-auto flex items-center gap-4">
-          <Button 
-            variant={isPreviewMode ? "secondary" : "outline"} 
-            size="sm" 
-            className={isPreviewMode ? "bg-white text-primary" : "text-white border-white"}
-            onClick={() => setIsPreviewMode(!isPreviewMode)}
-          >
-            <FlaskConical className="h-4 w-4 mr-2" />
-            {isPreviewMode ? "Exit Preview" : "UI Preview Mode"}
-          </Button>
-          <Badge variant="outline" className="border-white text-white hidden sm:flex tracking-widest">DEV ACCESS</Badge>
+          <Badge variant="outline" className="border-white text-white hidden sm:flex tracking-widest">SECURE ACCESS</Badge>
         </div>
       </header>
 
@@ -133,14 +86,6 @@ export default function AdminVerifyPage() {
             <h1 className="text-3xl font-bold">Registration Approval Queue</h1>
             <p className="text-muted-foreground">Review submitted credentials for NGOs and Volunteers.</p>
           </div>
-          {isPreviewMode && (
-            <Alert className="bg-amber-50 border-amber-200 text-amber-800 py-2">
-              <Info className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-xs font-medium">
-                Showing mock data for demonstration purposes.
-              </AlertDescription>
-            </Alert>
-          )}
         </div>
 
         <Card className="border-none shadow-md">
@@ -161,9 +106,6 @@ export default function AdminVerifyPage() {
                 </div>
                 <h3 className="text-lg font-semibold">Queue is Clear</h3>
                 <p className="text-muted-foreground max-w-xs mx-auto mt-2">No new registrations require manual verification at this time.</p>
-                <Button variant="outline" className="mt-6" onClick={() => setIsPreviewMode(true)}>
-                  See Example Queue
-                </Button>
               </div>
             ) : (
               <div className="rounded-md border bg-white overflow-hidden">
@@ -284,16 +226,11 @@ export default function AdminVerifyPage() {
                   <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest px-1">Proof of Identity / NGO Status</h4>
                   <div className="relative aspect-video w-full overflow-hidden rounded-xl border-2 border-dashed bg-black/5 flex items-center justify-center group">
                     {selectedUser.proofImage ? (
-                      <>
-                        <img 
-                          src={selectedUser.proofImage} 
-                          alt="Identity Proof" 
-                          className="object-contain w-full h-full transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                          <p className="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">Click to Enlarge (Mock)</p>
-                        </div>
-                      </>
+                      <img 
+                        src={selectedUser.proofImage} 
+                        alt="Identity Proof" 
+                        className="object-contain w-full h-full transition-transform duration-300"
+                      />
                     ) : (
                       <div className="text-center p-10">
                         <FileText className="h-12 w-12 text-muted-foreground mx-auto opacity-20" />
