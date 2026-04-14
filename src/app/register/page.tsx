@@ -24,7 +24,6 @@ const VOLUNTEER_SKILLS = [
   "Counseling", "Security", "Search & Rescue", "Other"
 ];
 
-// Internal consistent password for prototype authentication
 const PROTO_PWD = "ResQMate-Internal-Auth-2024";
 
 export default function RegisterPage() {
@@ -33,12 +32,10 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   
-  // Auth Steps
   const [step, setStep] = useState<'details' | 'otp'>('details');
   const [otp, setOtp] = useState('');
   const [generatedOtp, setGeneratedOtp] = useState('');
   
-  // Volunteer Fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [profession, setProfession] = useState('');
@@ -47,7 +44,6 @@ export default function RegisterPage() {
   const [selectedAdditionalSkills, setSelectedAdditionalSkills] = useState<string[]>([]);
   const [volunteerProofBase64, setVolunteerProofBase64] = useState<string | null>(null);
   
-  // NGO Fields
   const [orgName, setOrgName] = useState('');
   const [orgLocation, setOrgLocation] = useState('');
   const [orgProofBase64, setOrgProofBase64] = useState<string | null>(null);
@@ -135,15 +131,16 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+    const normalizedEmail = email.toLowerCase();
+    
     try {
       let user;
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, PROTO_PWD);
+        const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
         user = userCredential.user;
       } catch (authError: any) {
         if (authError.code === 'auth/email-already-in-use') {
-          // If already in auth, just sign in
-          const userCredential = await signInWithEmailAndPassword(auth, email, PROTO_PWD);
+          const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
           user = userCredential.user;
         } else {
           throw authError;
@@ -158,7 +155,7 @@ export default function RegisterPage() {
 
       const userData = {
         uid: user.uid,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         role: role,
         createdAt: new Date().toISOString(),
         verificationStatus: 'pending',

@@ -16,7 +16,6 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 import { sendEmailOTP } from '../admin/login/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Internal consistent password for prototype authentication
 const PROTO_PWD = "ResQMate-Internal-Auth-2024";
 
 export default function LoginPage() {
@@ -93,12 +92,22 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+    const normalizedEmail = email.toLowerCase();
+    
     try {
       try {
-        await signInWithEmailAndPassword(auth, email.toLowerCase(), PROTO_PWD);
+        await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
       } catch (signInError: any) {
         if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-          await createUserWithEmailAndPassword(auth, email.toLowerCase(), PROTO_PWD);
+          try {
+            await createUserWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
+          } catch (createError: any) {
+            if (createError.code === 'auth/email-already-in-use') {
+              await signInWithEmailAndPassword(auth, normalizedEmail, PROTO_PWD);
+            } else {
+              throw createError;
+            }
+          }
         } else {
           throw signInError;
         }
@@ -109,14 +118,13 @@ export default function LoginPage() {
         description: "Welcome back to ResQMate.",
       });
 
-      // Using window.location for a hard refresh to ensure clean state
       window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
     } catch (error: any) {
       console.error("Auth Error:", error);
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: "Failed to establish a secure session.",
+        description: error.code === 'auth/wrong-password' ? "Identity collision detected. Please contact support." : "Failed to establish a secure session.",
       });
       setLoading(false);
     }
