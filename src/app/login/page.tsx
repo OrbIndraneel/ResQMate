@@ -183,7 +183,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast({
@@ -201,26 +200,15 @@ export default function LoginPage() {
       await sendPasswordResetEmail(auth, email);
       toast({
         title: "Recovery Signal Sent",
-        description: `An official encryption reset link has been dispatched to ${email}. Please check your inbox (and spam folder).`,
+        description: `An official encryption reset link has been dispatched to ${email}.`,
       });
     } catch (error: any) {
       console.error("Password reset error:", error);
-      let errorMsg = "Could not initiate recovery. Please verify the email address or try again later.";
-      
+      let errorMsg = "Could not initiate recovery. Please try again later.";
       if (error.code === 'auth/user-not-found') {
-        errorMsg = "No responder node found with this email. Please register for an account first.";
-      } else if (error.code === 'auth/invalid-email') {
-        errorMsg = "The email identifier provided is not valid.";
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMsg = "System locked due to too many attempts. Please wait a few minutes.";
+        errorMsg = "Node record not found. Contact support for vetting status.";
       }
-      
       setStatusError(errorMsg);
-      toast({
-        variant: "destructive",
-        title: "Recovery Failed",
-        description: errorMsg,
-      });
     } finally {
       setRecoveryLoading(false);
     }
@@ -279,7 +267,8 @@ export default function LoginPage() {
           console.error(error);
           let errorMsg = "Authentication Failure: Access Denied.";
           if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-            errorMsg = "Invalid email or password. Please check your credentials or use the recovery link.";
+             // In custom vetted systems, we often want to check if the user exists but hasn't been approved yet
+             errorMsg = "Node record not found. Contact support for vetting status.";
           } else if (error.code === 'auth/too-many-requests') {
             errorMsg = "System locked due to multiple failed attempts. Please try again later.";
           }
@@ -487,7 +476,7 @@ export default function LoginPage() {
               <div className="absolute flex gap-6 transition-all duration-200 ease-out"
                 style={{
                   left: (pwdLen > 0 && showPassword) ? `20px` : `${52 + (yPos.faceX || 0)}px`,
-                  top: (pwdLen > 0 && showPassword) ? `35px` : `${40 + (yPos.faceY || 0)}px`,
+                  top: (pwdLen > 0 && showPassword) ? `${35}px` : `${40 + (yPos.faceY || 0)}px`,
                 }}>
                 <Pupil size={12} maxDistance={5} pupilColor="#1e293b" forceLookX={(pwdLen > 0 && showPassword) ? -5 : undefined} />
                 <Pupil size={12} maxDistance={5} pupilColor="#1e293b" forceLookX={(pwdLen > 0 && showPassword) ? -5 : undefined} />
@@ -519,10 +508,14 @@ export default function LoginPage() {
           </AnimatePresence>
 
           {statusError && (
-            <Alert variant="destructive" className="mb-8 rounded-[2rem] border-2 bg-rose-50 border-rose-100">
-              <AlertCircle className="h-5 w-5" />
-              <AlertTitle className="font-black">Operational Alert</AlertTitle>
-              <AlertDescription className="font-medium text-sm">{statusError}</AlertDescription>
+            <Alert variant="destructive" className="mb-8 rounded-[2rem] border-2 bg-rose-50 border-rose-100 p-6 flex items-start gap-4 shadow-sm">
+              <AlertCircle className="h-5 w-5 mt-0.5 text-rose-500" />
+              <div className="space-y-1">
+                <AlertTitle className="font-black text-rose-950">Operational Alert</AlertTitle>
+                <AlertDescription className="font-medium text-sm text-rose-500 leading-relaxed">
+                  {statusError}
+                </AlertDescription>
+              </div>
             </Alert>
           )}
 
