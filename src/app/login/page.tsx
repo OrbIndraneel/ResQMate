@@ -5,19 +5,16 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Shield, Check, Mail, Sparkles, AlertCircle, Loader2, KeyRound } from "lucide-react";
+import { Eye, EyeOff, Shield, Mail, Sparkles, AlertCircle, Loader2, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-const EASE = [0.25, 0.46, 0.45, 0.94];
 
 const AVAILABLE_SKILLS = [
   "First Aid", "Nursing", "Heavy Lifting", "Logistics", "Driving", 
@@ -147,7 +144,7 @@ export default function LoginPage() {
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "", adminName: "", email: "", password: "", address: "", contact: "", skills: [] as string[], proofUploaded: false
+    name: "", adminName: "", email: "", password: "", address: "", contact: "", skills: [] as string[]
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -240,8 +237,18 @@ export default function LoginPage() {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
 
+          // Attempt 1: Direct ID Lookup
           const userRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userRef);
+          let userDoc = await getDoc(userRef);
+
+          // Fallback 1: Query by Email in users
+          if (!userDoc.exists()) {
+            const q = query(collection(db, 'users'), where('email', '==', email));
+            const querySnap = await getDocs(q);
+            if (!querySnap.empty) {
+              userDoc = querySnap.docs[0];
+            }
+          }
 
           if (userDoc.exists()) {
             const data = userDoc.data();
@@ -253,8 +260,18 @@ export default function LoginPage() {
             return;
           }
 
+          // Attempt 2: Registration ID Lookup
           const regRef = doc(db, 'registrations', user.uid);
-          const regDoc = await getDoc(regRef);
+          let regDoc = await getDoc(regRef);
+
+          // Fallback 2: Query by Email in registrations
+          if (!regDoc.exists()) {
+            const q = query(collection(db, 'registrations'), where('email', '==', email));
+            const querySnap = await getDocs(q);
+            if (!querySnap.empty) {
+              regDoc = querySnap.docs[0];
+            }
+          }
 
           if (regDoc.exists()) {
             setIsPendingReview(true);
@@ -264,11 +281,10 @@ export default function LoginPage() {
 
           setStatusError("Node record not found. Contact support for vetting status.");
         } catch (error: any) {
-          console.error(error);
+          console.error("Login attempt failure:", error);
           let errorMsg = "Authentication Failure: Access Denied.";
           if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-             // In custom vetted systems, we often want to check if the user exists but hasn't been approved yet
-             errorMsg = "Node record not found. Contact support for vetting status.";
+             errorMsg = "Invalid email or password. Please verify your credentials.";
           } else if (error.code === 'auth/too-many-requests') {
             errorMsg = "System locked due to multiple failed attempts. Please try again later.";
           }
