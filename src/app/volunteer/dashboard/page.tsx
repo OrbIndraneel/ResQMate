@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -6,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Star, MapPin, Navigation, ArrowRight, Loader2, Sparkles, BrainCircuit } from 'lucide-react';
+import { Trophy, Star, MapPin, Navigation, ArrowRight, Loader2, Sparkles, BrainCircuit, Activity, ShieldCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
@@ -60,12 +59,12 @@ export default function VolunteerDashboard() {
 
   if (authLoading || (loading && user)) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-slate-50 hero-gradient">
-        <div className="relative">
-          <div className="h-16 w-16 rounded-full border-4 border-primary/20 animate-pulse" />
-          <Loader2 className="h-8 w-8 animate-spin text-primary absolute top-4 left-4" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-8 bg-slate-50 hero-gradient">
+        <div className="relative h-20 w-20">
+          <div className="absolute inset-0 rounded-3xl border-4 border-emerald-500/20 animate-spin" />
+          <Activity className="h-10 w-10 text-emerald-500 absolute top-5 left-5 animate-pulse" />
         </div>
-        <p className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Synching Mission Intel...</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Synchronizing Mission Intel...</p>
       </div>
     );
   }
@@ -76,102 +75,106 @@ export default function VolunteerDashboard() {
     <div className="min-h-screen bg-slate-50/50">
       <SiteHeader userRole="volunteer" userName={user?.displayName || "Volunteer"} />
       
-      <main className="container mx-auto py-10 px-6 space-y-10">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Active Duty Feed</h1>
-            <p className="text-slate-500 font-medium text-lg">Welcome back, {user?.displayName || 'Responder'}. {tasks.length} missions require your expertise.</p>
+      <main className="container mx-auto py-16 px-8 space-y-16 max-w-7xl">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8">
+          <div className="space-y-3">
+            <h1 className="text-5xl font-black text-slate-950 tracking-tighter">Operational Feed</h1>
+            <p className="text-slate-500 font-bold text-lg">Greetings, Responder {user?.displayName?.split(' ')[0]}. Sector status: {tasks.length} missions active.</p>
           </div>
           <Link href="/volunteer/tasks">
-            <Button size="lg" className="rounded-2xl h-14 px-8 text-lg font-bold shadow-xl shadow-primary/20 group">
-              Browse Mission Map <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            <Button size="lg" className="rounded-[1.5rem] h-20 px-10 text-xl font-black shadow-2xl shadow-primary/20 group">
+              Browse Mission Map <ArrowRight className="ml-3 h-7 w-7 group-hover:translate-x-2 transition-transform" />
             </Button>
           </Link>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-12">
+        <div className="grid gap-12 lg:grid-cols-12">
           {/* Progress Card */}
-          <Card className="lg:col-span-4 border-none shadow-2xl rounded-[2.5rem] bg-slate-900 text-white overflow-hidden relative">
-            <div className="absolute top-0 right-0 h-40 w-40 bg-primary/20 rounded-full blur-3xl -mr-20 -mt-20" />
-            <CardHeader className="pt-10 px-8">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl font-black">Impact Rank</CardTitle>
-                <div className="p-2 bg-white/10 rounded-xl">
-                  <Trophy className="h-6 w-6 text-yellow-400" />
+          <Card className="lg:col-span-4 border-none shadow-2xl rounded-[3rem] bg-slate-950 text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 h-64 w-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
+            <CardHeader className="pt-12 px-10">
+              <div className="flex justify-between items-center mb-6">
+                <CardTitle className="text-3xl font-black tracking-tight">Impact Rank</CardTitle>
+                <div className="p-4 bg-white/10 rounded-2xl border border-white/10">
+                  <Trophy className="h-8 w-8 text-yellow-400" />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="px-8 pb-10 space-y-8">
-              <div className="space-y-3">
-                <div className="flex justify-between text-xs font-black uppercase tracking-widest text-slate-400">
-                  <span>Progress to Elite Rank</span>
+              <div className="space-y-4">
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <span>Elite Tier Alignment</span>
                   <span className="text-white">{profile?.points || 0} / {MILESTONE} Pts</span>
                 </div>
-                <Progress value={Math.min(((profile?.points || 0) / MILESTONE) * 100, 100)} className="h-3 bg-white/10" />
+                <Progress value={Math.min(((profile?.points || 0) / MILESTONE) * 100, 100)} className="h-4 bg-white/10" />
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-center group hover:bg-white/10 transition-colors">
-                  <p className="text-3xl font-black text-white">{profile?.tasksCompleted || 0}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">Deployments</p>
+            </CardHeader>
+            <CardContent className="px-10 pb-12 space-y-10">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 text-center group transition-all hover:bg-white/10">
+                  <p className="text-4xl font-black text-white tracking-tighter">{profile?.tasksCompleted || 0}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Deployments</p>
                 </div>
-                <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-center group hover:bg-white/10 transition-colors">
-                  <p className="text-3xl font-black text-white">{profile?.hoursContributed || 0}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">Impact Hours</p>
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 text-center group transition-all hover:bg-white/10">
+                  <p className="text-4xl font-black text-white tracking-tighter">{profile?.hoursContributed || 0}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Relief Hours</p>
                 </div>
+              </div>
+              <div className="p-6 bg-primary/10 rounded-2xl border border-primary/20 flex items-center gap-4">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+                <p className="text-xs font-bold text-slate-300">Verified Professional Responder Status</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Missions Card */}
-          <Card className="lg:col-span-8 border-none shadow-xl rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="p-8 flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-1">
-                <CardTitle className="text-2xl font-black">AI Recommendations</CardTitle>
-                <CardDescription className="text-slate-500 font-medium">Missions prioritized by your skill profile.</CardDescription>
-              </div>
-              <Badge variant="outline" className="h-8 rounded-full border-2 border-emerald-500/20 text-emerald-600 flex items-center gap-1.5 px-4 font-black text-[10px] tracking-widest">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> GPS ACTIVE
+          <div className="lg:col-span-8 space-y-8">
+            <div className="flex items-center justify-between px-4">
+               <div className="space-y-1">
+                 <h2 className="text-3xl font-black tracking-tighter">AI Mission Recommendations</h2>
+                 <p className="text-slate-500 font-bold">Optimized for your verified skill profile.</p>
+               </div>
+               <Badge className="h-10 rounded-full border-2 border-emerald-500/20 bg-emerald-50 text-emerald-600 flex items-center gap-2 px-6 font-black text-[10px] tracking-widest uppercase">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live Scanning
               </Badge>
-            </CardHeader>
-            <CardContent className="px-8 pb-8 space-y-4">
+            </div>
+            
+            <div className="space-y-6">
               {tasks.length === 0 ? (
-                <div className="text-center py-20 border-4 border-dashed rounded-[2rem] border-slate-100">
-                  <p className="text-slate-400 font-bold uppercase tracking-widest">No active deployments in sector</p>
+                <div className="text-center py-32 premium-card bg-white/50 border-dashed border-4 border-slate-100">
+                  <p className="text-slate-400 font-black uppercase tracking-widest">No active deployments in sector</p>
                 </div>
               ) : (
                 tasks.map(task => (
-                  <div key={task.id} className="p-6 rounded-[2rem] border border-slate-100 bg-white hover:border-primary/30 hover:shadow-2xl transition-all group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 h-1 w-full bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-black text-xl text-slate-900 group-hover:text-primary transition-colors">{task.title}</h3>
-                          <Badge className={task.urgency === 'emergency' ? 'bg-rose-100 text-rose-600 hover:bg-rose-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-100'} variant="secondary">
+                  <div key={task.id} className="premium-card p-10 group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 h-1.5 w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-10">
+                      <div className="space-y-5">
+                        <div className="flex items-center gap-4">
+                          <h3 className="font-black text-3xl text-slate-950 group-hover:text-primary transition-colors tracking-tight">{task.title}</h3>
+                          <Badge className={task.urgency === 'emergency' ? 'bg-rose-500 hover:bg-rose-600' : 'bg-slate-900'} variant="default">
                              {task.urgency.toUpperCase()}
                           </Badge>
                         </div>
-                        <div className="flex flex-wrap gap-6 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                          <span className="flex items-center gap-1.5"><Navigation className="h-4 w-4 text-primary" /> {task.location}</span>
-                          <span className="flex items-center gap-1.5 text-emerald-600"><Sparkles className="h-4 w-4" /> +{task.pointsValue || 50} Impact Pts</span>
+                        <div className="flex flex-wrap gap-10 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <span className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> {task.location}</span>
+                          <span className="flex items-center gap-2 text-emerald-600"><Sparkles className="h-5 w-5" /> +{task.pointsValue || 50} Impact Pts</span>
                         </div>
                         <div className="flex gap-2">
-                           {task.requiredSkills?.slice(0, 3).map((s: string) => (
-                             <Badge key={s} variant="outline" className="text-[10px] font-bold py-1 px-3 rounded-lg border-slate-100 text-slate-500">{s}</Badge>
+                           {task.requiredSkills?.slice(0, 4).map((s: string) => (
+                             <Badge key={s} variant="outline" className="text-[10px] font-black py-2 px-4 rounded-xl border-slate-100 text-slate-500 uppercase tracking-wider">{s}</Badge>
                            ))}
                         </div>
                       </div>
                       <Link href={`/volunteer/tasks/${task.id}`}>
-                        <Button className="w-full md:w-auto h-14 rounded-2xl bg-slate-900 hover:bg-black text-white px-8 font-black shadow-lg shadow-slate-200 transition-all active:scale-95">
-                          Mission Details
+                        <Button className="w-full md:w-auto h-16 rounded-2xl bg-slate-950 hover:bg-black text-white px-10 font-black shadow-xl transition-all active:scale-95 text-lg">
+                          Mission Brief
                         </Button>
                       </Link>
                     </div>
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </main>
     </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -32,42 +31,38 @@ export default function LoginPage() {
     setStatusError(null);
 
     try {
-      // 1. Sign in with Auth first
       const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
       const user = userCredential.user;
 
-      // 2. Check USERS table (Verified)
       const userRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
         const data = userDoc.data();
         if (data.role !== role) {
-          throw new Error(`Account type mismatch. This is a ${data.role} account.`);
+          throw new Error(`Account type mismatch. This is a ${data.role} node.`);
         }
-        toast({ title: "Welcome Back", description: "Accessing dashboard..." });
+        toast({ title: "Session Established", description: "Accessing tactical interface..." });
         window.location.href = role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard';
         return;
       }
 
-      // 3. Check REGISTRATIONS table (Pending)
       const regRef = doc(db, 'registrations', user.uid);
       const regDoc = await getDoc(regRef);
 
       if (regDoc.exists()) {
-        setStatusError("Your application is currently being reviewed by an administrator. Please check back later.");
+        setStatusError("Node synchronization pending. Your credentials are under administrative review.");
         setLoading(false);
         return;
       }
 
-      // 4. Fallback: Not found anywhere
-      setStatusError("Account record not found in the operational database. Please re-register.");
+      setStatusError("Node not found in local registry. Please initiate registration.");
       setLoading(false);
     } catch (error: any) {
       console.error("Auth Error:", error);
       toast({
         variant: "destructive",
-        title: "Security Check Failed",
+        title: "Session Failed",
         description: error.message,
       });
       setLoading(false);
@@ -75,100 +70,99 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4 hero-gradient">
-      <Link href="/" className="mb-8 flex items-center gap-2 group transition-all hover:-translate-y-1">
-        <div className="bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
+    <div className="auth-container">
+      <Link href="/" className="fixed top-12 left-12 hidden md:flex items-center gap-3 group">
+        <div className="bg-primary p-2.5 rounded-2xl text-white shadow-xl shadow-primary/20 group-hover:rotate-12 transition-transform">
           <Shield className="h-6 w-6" />
         </div>
         <span className="font-headline font-black text-2xl tracking-tighter text-slate-900">ResQMate</span>
       </Link>
       
-      <Card className="w-full max-w-md shadow-2xl border-none rounded-3xl overflow-hidden">
-        <CardHeader className="space-y-2 text-center pb-8 pt-10">
-          <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Sign In</CardTitle>
-          <CardDescription className="text-slate-500 font-medium">
-            Access your mission control dashboard.
+      <Card className="w-full max-w-lg shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border-none rounded-[3rem] overflow-hidden bg-white">
+        <CardHeader className="space-y-4 text-center pb-12 pt-16 px-12">
+          <div className="h-20 w-20 bg-primary/10 rounded-[1.5rem] flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-10 w-10 text-primary" />
+          </div>
+          <CardTitle className="text-4xl font-black tracking-tighter text-slate-950">Secure Access</CardTitle>
+          <CardDescription className="text-slate-500 font-bold text-lg">
+            Access your mission coordination terminal.
           </CardDescription>
         </CardHeader>
-        <CardContent className="px-8">
+        <CardContent className="px-12">
           {statusError && (
-            <Alert variant="destructive" className="mb-6 bg-rose-50 border-rose-200 text-rose-800">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Account Pending</AlertTitle>
-              <AlertDescription>{statusError}</AlertDescription>
+            <Alert variant="destructive" className="mb-8 rounded-[1.5rem] border-2 bg-rose-50 border-rose-100 text-rose-900">
+              <AlertCircle className="h-5 w-5" />
+              <AlertTitle className="font-black">Operational Delay</AlertTitle>
+              <AlertDescription className="font-medium">{statusError}</AlertDescription>
             </Alert>
           )}
 
           <Tabs defaultValue="volunteer" onValueChange={setRole} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-100 p-1 h-12 rounded-2xl">
-              <TabsTrigger value="volunteer" className="rounded-xl data-[state=active]:shadow-sm font-bold">
-                Volunteer
+            <TabsList className="grid w-full grid-cols-2 mb-10 bg-slate-100 p-1.5 h-16 rounded-[1.5rem]">
+              <TabsTrigger value="volunteer" className="rounded-2xl font-black uppercase text-[10px] tracking-widest data-[state=active]:shadow-lg">
+                Responder
               </TabsTrigger>
-              <TabsTrigger value="ngo" className="rounded-xl data-[state=active]:shadow-sm font-bold">
-                NGO Admin
+              <TabsTrigger value="ngo" className="rounded-2xl font-black uppercase text-[10px] tracking-widest data-[state=active]:shadow-lg">
+                Command
               </TabsTrigger>
             </TabsList>
             
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700 font-bold ml-1">Email</Label>
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Node Identifier (Email)</Label>
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="name@organization.org" 
+                  placeholder="name@org.network" 
                   required 
-                  className="h-12 px-4 rounded-xl border-slate-200"
+                  className="h-16 px-6 rounded-2xl border-slate-200 text-lg font-bold"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between items-center px-1">
-                  <Label htmlFor="password" className="text-slate-700 font-bold">Password</Label>
-                  <Link href="#" className="text-xs text-primary font-bold hover:underline">Forgot?</Link>
+                  <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Security Key</Label>
+                  <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Reset Token</Link>
                 </div>
                 <div className="relative">
                   <Input 
                     id="password" 
                     type={showPassword ? "text" : "password"} 
                     required 
-                    className="h-12 px-4 rounded-xl border-slate-200"
+                    className="h-16 px-6 rounded-2xl border-slate-200 text-lg font-bold"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 mt-4" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><LogIn className="mr-2 h-5 w-5" /> Secure Access</>}
+              <Button type="submit" className="w-full h-20 rounded-[1.5rem] text-xl font-black shadow-2xl shadow-primary/20 mt-6" disabled={loading}>
+                {loading ? <Loader2 className="mr-3 h-8 w-8 animate-spin" /> : <><LogIn className="mr-3 h-8 w-8" /> Initiate Link</>}
               </Button>
             </form>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-6 pb-10 pt-4">
-          <div className="flex items-center gap-4 w-full px-8">
-            <div className="h-px bg-slate-200 flex-1" />
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OR</span>
-            <div className="h-px bg-slate-200 flex-1" />
+        <CardFooter className="flex flex-col space-y-8 pb-16 pt-8">
+          <div className="flex items-center gap-6 w-full px-12">
+            <div className="h-px bg-slate-100 flex-1" />
+            <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Protocol</span>
+            <div className="h-px bg-slate-100 flex-1" />
           </div>
-          <div className="text-sm text-center text-slate-600">
-            Need an account?{" "}
-            <Link href="/register" className="text-primary hover:underline font-bold">
+          <div className="text-sm font-bold text-slate-500">
+            Unregistered?{" "}
+            <Link href="/register" className="text-primary hover:underline font-black">
               Join the Network
             </Link>
           </div>
         </CardFooter>
       </Card>
-      
-      <p className="mt-8 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-        <Lock className="h-3 w-3" /> Secure RSA-256 Protocol
-      </p>
     </div>
   );
 }
