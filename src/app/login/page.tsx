@@ -143,6 +143,7 @@ export default function LoginPage() {
   const [role, setRole] = useState("volunteer");
   const [isPendingReview, setIsPendingReview] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -172,32 +173,56 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     const email = formData.email.trim().toLowerCase();
+    
     if (!email) {
       toast({
         variant: "destructive",
         title: "Email Required",
-        description: "Please enter your registered email address first to receive a recovery link.",
+        description: "Please enter your registered email address first so we know where to send the link.",
       });
       return;
     }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter a correctly formatted email identifier.",
+      });
+      return;
+    }
+
+    setRecoveryLoading(true);
+    setStatusError(null);
 
     try {
       await sendPasswordResetEmail(auth, email);
       toast({
         title: "Recovery Signal Sent",
-        description: `An encryption reset link has been dispatched to ${email}. Please check your inbox.`,
+        description: `An official encryption reset link has been dispatched to ${email}. Please check your inbox (and spam folder).`,
       });
     } catch (error: any) {
       console.error("Password reset error:", error);
-      let errorMsg = "Could not initiate recovery. Please verify the email address.";
+      let errorMsg = "Could not initiate recovery. Please verify the email address or try again later.";
+      
       if (error.code === 'auth/user-not-found') {
-        errorMsg = "No responder node found with this identifier.";
+        errorMsg = "No responder node found with this email. Please register for an account first.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMsg = "The email identifier provided is not valid.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMsg = "System locked due to too many attempts. Please wait a few minutes.";
       }
+      
+      setStatusError(errorMsg);
       toast({
         variant: "destructive",
         title: "Recovery Failed",
         description: errorMsg,
       });
+    } finally {
+      setRecoveryLoading(false);
     }
   };
 
@@ -413,6 +438,7 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Black Character */}
             <div ref={blackRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '240px', width: '120px', height: '310px', backgroundColor: '#1e293b', borderRadius: '30px 30px 0 0', zIndex: 2,
@@ -434,6 +460,7 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Orange Character */}
             <div ref={orangeRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '0px', width: '240px', height: '200px', backgroundColor: '#f97316', borderRadius: '120px 120px 0 0', zIndex: 3,
@@ -450,6 +477,7 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Yellow Character */}
             <div ref={yellowRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '310px', width: '140px', height: '230px', backgroundColor: '#fbbf24', borderRadius: '70px 70px 0 0', zIndex: 4,
@@ -536,9 +564,10 @@ export default function LoginPage() {
                     <button 
                       type="button" 
                       onClick={handleForgotPassword}
-                      className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                      disabled={recoveryLoading}
+                      className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline disabled:opacity-50"
                     >
-                      Recovery Link?
+                      {recoveryLoading ? "Syncing..." : "Recovery Link?"}
                     </button>
                   )}
                 </div>
