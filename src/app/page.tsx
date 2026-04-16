@@ -91,8 +91,9 @@ const HeroIllustration = memo(function HeroIllustration() {
       {/* Orbiting nodes */}
       {nodes.map(({ label, Icon, angle, r, color }, i) => {
         const rad = (angle * Math.PI) / 180;
-        const x = 170 + Math.cos(rad) * r - 38;
-        const y = 170 + Math.sin(rad) * r - 30;
+        // Rounding to avoid hydration mismatch on long floating point strings
+        const x = Math.round((170 + Math.cos(rad) * r - 38) * 100) / 100;
+        const y = Math.round((170 + Math.sin(rad) * r - 30) * 100) / 100;
         const isBright = color === "#ffffff";
         return (
           <motion.div
