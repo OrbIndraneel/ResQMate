@@ -175,8 +175,8 @@ export default function LoginPage() {
     if (!email) {
       toast({
         variant: "destructive",
-        title: "Missing Email",
-        description: "Please enter your email address to receive a reset link.",
+        title: "Email Required",
+        description: "Please enter your registered email address first to receive a recovery link.",
       });
       return;
     }
@@ -184,14 +184,19 @@ export default function LoginPage() {
     try {
       await sendPasswordResetEmail(auth, email);
       toast({
-        title: "Reset Link Sent",
-        description: "Please check your inbox (and spam folder) for the password recovery link.",
+        title: "Recovery Signal Sent",
+        description: `An encryption reset link has been dispatched to ${email}. Please check your inbox.`,
       });
     } catch (error: any) {
+      console.error("Password reset error:", error);
+      let errorMsg = "Could not initiate recovery. Please verify the email address.";
+      if (error.code === 'auth/user-not-found') {
+        errorMsg = "No responder node found with this identifier.";
+      }
       toast({
         variant: "destructive",
-        title: "Recovery Error",
-        description: "Could not send reset link. Please verify the email address.",
+        title: "Recovery Failed",
+        description: errorMsg,
       });
     }
   };
@@ -205,20 +210,19 @@ export default function LoginPage() {
     const password = formData.password;
 
     if (!email) {
-      setStatusError("Email is required.");
+      setStatusError("Email identifier is required.");
       setLoading(false);
       return;
     }
 
     if (!password) {
-      setStatusError("Password is required.");
+      setStatusError("Encryption key (password) is required.");
       setLoading(false);
       return;
     }
 
     try {
       if (isLogin) {
-        // LOGIN LOGIC
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
@@ -229,7 +233,7 @@ export default function LoginPage() {
           if (userDoc.exists()) {
             const data = userDoc.data();
             if (data.role !== role) {
-              throw new Error(`Account mismatch. This node is registered as a ${data.role}. Please select the correct role above.`);
+              throw new Error(`Account mismatch. This node is registered as a ${data.role}.`);
             }
             toast({ title: "Link Established", description: "Entering command terminal..." });
             router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
@@ -245,20 +249,18 @@ export default function LoginPage() {
             return;
           }
 
-          setStatusError("Node record not found in database. Contact support if this persists.");
+          setStatusError("Node record not found. Contact support for vetting status.");
         } catch (error: any) {
-          let errorMsg = "Authentication Failure: " + (error.message || "Unknown error occurred.");
-          
-          if (error.code === 'auth/invalid-email') {
-            errorMsg = "The email address format is invalid. Please double-check your input.";
-          } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-            errorMsg = "Invalid email or password. Please check your credentials and try again.";
+          console.error(error);
+          let errorMsg = "Authentication Failure: Access Denied.";
+          if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            errorMsg = "Invalid email or password. Please check your credentials or use the recovery link.";
+          } else if (error.code === 'auth/too-many-requests') {
+            errorMsg = "System locked due to multiple failed attempts. Please try again later.";
           }
-          
           setStatusError(errorMsg);
         }
       } else {
-        // REGISTRATION LOGIC
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
@@ -278,6 +280,7 @@ export default function LoginPage() {
               skills: formData.skills,
               location: formData.address,
               phone: formData.contact,
+              affiliationType: 'independent'
             } : {
               organizationName: formData.name,
               adminName: formData.adminName,
@@ -291,24 +294,21 @@ export default function LoginPage() {
         } catch (error: any) {
           let errorMsg = error.message;
           if (error.code === 'auth/email-already-in-use') {
-            errorMsg = "This email is already registered. If you forgot your password, please use the login screen to reset it.";
+            errorMsg = "This email is already in the network. Try logging in or resetting your key.";
           } else if (error.code === 'auth/weak-password') {
-            errorMsg = "The password is too weak. Please use at least 6 characters.";
-          } else if (error.code === 'auth/invalid-email') {
-            errorMsg = "The email address format is invalid.";
+            errorMsg = "Encryption key too weak. Use at least 6 characters.";
           }
           setStatusError(errorMsg);
         }
       }
     } catch (error: any) {
       console.error(error);
-      setStatusError(error.message || "An unexpected error occurred.");
+      setStatusError(error.message || "An unexpected operational error occurred.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Interaction Logic
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => { setMouseX(e.clientX); setMouseY(e.clientY); };
     window.addEventListener("mousemove", handleMouseMove);
@@ -391,7 +391,7 @@ export default function LoginPage() {
         <div className="relative z-20 flex items-end justify-center h-[550px] mb-12">
           <div className="relative" style={{ width: '550px', height: '400px' }}>
             
-            {/* Characters */}
+            {/* Purple Character */}
             <div ref={purpleRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '70px', width: '180px', backgroundColor: '#6C3FF5', borderRadius: '40px 40px 0 0', zIndex: 1,
