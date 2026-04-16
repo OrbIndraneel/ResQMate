@@ -27,19 +27,18 @@ export default function Home() {
       </header>
       
       <main className="flex-1">
-        {/* Cinematic Hero */}
         <section className="relative w-full py-24 lg:py-32 overflow-hidden hero-gradient">
           <div className="container px-8 mx-auto relative z-10">
             <div className="grid gap-16 lg:grid-cols-2 items-center">
               <div className="flex flex-col space-y-10">
                 <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] animate-in fade-in slide-in-from-left-4 duration-1000">
+                  <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em]">
                     <Activity className="h-3.5 w-3.5" /> Next-Gen Coordination Layer
                   </div>
-                  <h1 className="text-6xl lg:text-8xl font-black leading-[0.9] tracking-tighter text-slate-950 animate-in fade-in slide-in-from-top-8 duration-700">
+                  <h1 className="text-6xl lg:text-8xl font-black leading-[0.9] tracking-tighter text-slate-950">
                     Deploy <span className="text-primary">Impact</span>.<br />Mobilize <span className="text-accent">Hope</span>.
                   </h1>
-                  <p className="max-w-[580px] text-slate-600 text-xl font-medium leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                  <p className="max-w-[580px] text-slate-600 text-xl font-medium leading-relaxed">
                     ResQMate bridges the gap between verified global responders and NGOs, providing the technical backbone for rapid humanitarian operations.
                   </p>
                 </div>
@@ -67,14 +66,14 @@ export default function Home() {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Operational Readiness Globally</p>
                 </div>
               </div>
-              <div className="relative animate-in zoom-in-95 duration-1000">
+              <div className="relative">
                 <div className="absolute -inset-10 bg-gradient-to-tr from-primary/30 to-accent/30 rounded-full blur-[120px] animate-pulse" />
                 <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[3.5rem] shadow-[0_64px_128px_-32px_rgba(0,0,0,0.15)] border-[16px] border-white">
                   <Image
                     src={heroImage?.imageUrl || "https://picsum.photos/seed/relief/1200/800"}
                     alt="Humanitarian relief"
                     fill
-                    className="object-cover scale-105 hover:scale-100 transition-transform duration-1000"
+                    className="object-cover"
                     priority
                   />
                   <div className="absolute bottom-10 left-10 right-10 glass-panel rounded-3xl p-8 flex items-center justify-between">
@@ -83,7 +82,7 @@ export default function Home() {
                       <p className="text-3xl font-black text-slate-900 tracking-tighter">4,891 Tasks</p>
                     </div>
                     <div className="h-16 w-16 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-2xl shadow-emerald-200">
-                      <Globe className="h-8 w-8 text-white animate-spin-slow" />
+                      <Globe className="h-8 w-8 text-white" />
                     </div>
                   </div>
                 </div>
@@ -92,7 +91,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
         <section className="w-full py-32 bg-white">
           <div className="container px-8 mx-auto">
             <div className="max-w-4xl mx-auto text-center space-y-6 mb-24">
@@ -124,8 +122,8 @@ export default function Home() {
                   bg: "bg-rose-50"
                 }
               ].map((f, i) => (
-                <div key={i} className="premium-card p-12 group cursor-default">
-                  <div className={`h-24 w-24 ${f.bg} ${f.color} rounded-[2rem] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform duration-500`}>
+                <div key={i} className="premium-card p-12 group">
+                  <div className={`h-24 w-24 ${f.bg} ${f.color} rounded-[2rem] flex items-center justify-center mb-10 group-hover:scale-110 transition-transform`}>
                     <f.icon className="h-12 w-12" />
                   </div>
                   <h3 className="text-3xl font-black text-slate-950 mb-4 tracking-tighter">{f.title}</h3>
@@ -150,29 +148,15 @@ export default function Home() {
               <span className="font-black text-2xl tracking-tighter">ResQMate</span>
             </Link>
             <p className="text-slate-500 font-medium max-w-sm leading-relaxed">The professional standard for humanitarian relief coordination and responder mobilization.</p>
-            <div className="flex gap-6">
-              <Link href="/admin/login" className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 hover:text-primary transition-colors flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" /> Node Command
-              </Link>
-            </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-20">
             <div className="flex flex-col gap-5">
               <span className="font-black text-slate-950 uppercase text-xs tracking-[0.3em]">Platform</span>
-              <Link href="#" className="text-slate-500 font-bold hover:text-primary transition-colors">Mission Map</Link>
-              <Link href="#" className="text-slate-500 font-bold hover:text-primary transition-colors">NGO Command</Link>
-              <Link href="#" className="text-slate-500 font-bold hover:text-primary transition-colors">Responder Hub</Link>
-            </div>
-            <div className="flex flex-col gap-5">
-              <span className="font-black text-slate-950 uppercase text-xs tracking-[0.3em]">Protocol</span>
-              <Link href="#" className="text-slate-500 font-bold hover:text-primary transition-colors">Security Docs</Link>
-              <Link href="#" className="text-slate-500 font-bold hover:text-primary transition-colors">Impact Score</Link>
-              <Link href="#" className="text-slate-500 font-bold hover:text-primary transition-colors">Privacy Shield</Link>
+              <Link href="#" className="text-slate-500 font-bold hover:text-primary">Mission Map</Link>
+              <Link href="#" className="text-slate-500 font-bold hover:text-primary">NGO Command</Link>
+              <Link href="#" className="text-slate-500 font-bold hover:text-primary">Responder Hub</Link>
             </div>
           </div>
-        </div>
-        <div className="container px-8 mx-auto pt-24 text-center">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">© 2024 ResQMate Global Command • Secure Channel Active</p>
         </div>
       </footer>
     </div>

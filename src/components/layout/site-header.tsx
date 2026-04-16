@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Shield, Bell, LogOut, LayoutDashboard, Settings, Activity } from 'lucide-react';
+import { Shield, Bell, LogOut, LayoutDashboard, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from '@/components/ui/badge';
 
 interface SiteHeaderProps {
   userRole: 'ngo' | 'volunteer';
@@ -64,12 +65,12 @@ export function SiteHeader({ userRole, userName }: SiteHeaderProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-100/50" />
             <div className="p-2 space-y-1">
-              <DropdownMenuItem className="rounded-2xl py-4 px-5 font-bold cursor-pointer transition-all hover:bg-white hover:shadow-sm" asChild>
+              <DropdownMenuItem className="rounded-2xl py-4 px-5 font-bold cursor-pointer transition-all hover:bg-white" asChild>
                 <Link href={userRole === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard'}>
                   <LayoutDashboard className="mr-4 h-5 w-5 text-slate-400" /> Dashboard
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem className="rounded-2xl py-4 px-5 font-bold cursor-pointer transition-all hover:bg-white hover:shadow-sm" asChild>
+              <DropdownMenuItem className="rounded-2xl py-4 px-5 font-bold cursor-pointer transition-all hover:bg-white" asChild>
                 <Link href={userRole === 'ngo' ? '/ngo/profile' : '/volunteer/profile'}>
                   <Settings className="mr-4 h-5 w-5 text-slate-400" /> Account Settings
                 </Link>
@@ -89,5 +90,3 @@ export function SiteHeader({ userRole, userName }: SiteHeaderProps) {
     </header>
   );
 }
-
-import { Badge } from '@/components/ui/badge';

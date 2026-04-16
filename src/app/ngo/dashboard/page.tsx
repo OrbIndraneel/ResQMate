@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, TrendingUp, Calendar, Heart, Shield, Globe } from 'lucide-react';
+import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, TrendingUp, Calendar, Heart, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
@@ -98,12 +98,11 @@ export default function NGODashboard() {
           </div>
           <Link href="/ngo/tasks/new">
             <Button size="lg" className="rounded-[1.5rem] h-20 px-12 text-2xl font-black shadow-2xl shadow-primary/30 group active:scale-95 transition-all">
-              <Plus className="mr-3 h-8 w-8 group-hover:rotate-90 transition-transform duration-500" /> Deploy Mission
+              <Plus className="mr-3 h-8 w-8 group-hover:rotate-90 transition-transform" /> Deploy Mission
             </Button>
           </Link>
         </div>
 
-        {/* Dynamic Stats */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Active Deployments", val: stats.active, icon: Clock, color: "text-blue-600", bg: "bg-blue-50" },
@@ -116,7 +115,6 @@ export default function NGODashboard() {
                 <div className={`p-5 rounded-[1.5rem] ${s.bg} ${s.color} group-hover:scale-110 transition-transform`}>
                   <s.icon className="h-8 w-8" />
                 </div>
-                <div className="h-3 w-12 bg-slate-100 rounded-full" />
               </div>
               <div className="space-y-2">
                 <div className="text-5xl font-black text-slate-950 tracking-tighter">{s.val}</div>
@@ -169,7 +167,7 @@ export default function NGODashboard() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="h-16 w-16 rounded-[1.5rem] bg-slate-50 hover:bg-primary/10 group-hover:translate-x-3 transition-all" asChild>
+                      <Button variant="ghost" size="icon" className="h-16 w-16 rounded-[1.5rem] bg-slate-50 hover:bg-primary/10 transition-all" asChild>
                         <Link href={`/volunteer/tasks/${task.id}`}>
                           <ArrowRight className="h-8 w-8 text-slate-300 group-hover:text-primary" />
                         </Link>
@@ -214,11 +212,8 @@ export default function NGODashboard() {
               </div>
               <div className="space-y-4">
                 <h3 className="text-3xl font-black text-slate-950 tracking-tighter">AI Mission Support</h3>
-                <p className="text-slate-600 font-medium text-lg leading-relaxed">Our Genkit AI layer is active. We recommend optimizing mission descriptions to increase responder engagement by up to 40%.</p>
+                <p className="text-slate-600 font-medium text-lg leading-relaxed">Our Genkit AI layer is active. We recommend optimizing mission descriptions to increase responder engagement.</p>
               </div>
-              <Button variant="link" className="p-0 h-auto text-primary text-lg font-black group">
-                Access AI Protocol <ArrowRight className="h-5 w-5 ml-3 group-hover:translate-x-2 transition-transform" />
-              </Button>
             </div>
           </div>
         </div>

@@ -89,7 +89,6 @@ export default function VolunteerDashboard() {
         </div>
 
         <div className="grid gap-12 lg:grid-cols-12">
-          {/* Progress Card */}
           <Card className="lg:col-span-4 border-none shadow-2xl rounded-[3rem] bg-slate-950 text-white overflow-hidden relative">
             <div className="absolute top-0 right-0 h-64 w-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32" />
             <CardHeader className="pt-12 px-10">
@@ -109,11 +108,11 @@ export default function VolunteerDashboard() {
             </CardHeader>
             <CardContent className="px-10 pb-12 space-y-10">
               <div className="grid grid-cols-2 gap-6">
-                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 text-center group transition-all hover:bg-white/10">
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 text-center transition-all hover:bg-white/10">
                   <p className="text-4xl font-black text-white tracking-tighter">{profile?.tasksCompleted || 0}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Deployments</p>
                 </div>
-                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 text-center group transition-all hover:bg-white/10">
+                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 text-center transition-all hover:bg-white/10">
                   <p className="text-4xl font-black text-white tracking-tighter">{profile?.hoursContributed || 0}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">Relief Hours</p>
                 </div>
@@ -125,7 +124,6 @@ export default function VolunteerDashboard() {
             </CardContent>
           </Card>
 
-          {/* Missions Card */}
           <div className="lg:col-span-8 space-y-8">
             <div className="flex items-center justify-between px-4">
                <div className="space-y-1">
@@ -158,14 +156,9 @@ export default function VolunteerDashboard() {
                           <span className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> {task.location}</span>
                           <span className="flex items-center gap-2 text-emerald-600"><Sparkles className="h-5 w-5" /> +{task.pointsValue || 50} Impact Pts</span>
                         </div>
-                        <div className="flex gap-2">
-                           {task.requiredSkills?.slice(0, 4).map((s: string) => (
-                             <Badge key={s} variant="outline" className="text-[10px] font-black py-2 px-4 rounded-xl border-slate-100 text-slate-500 uppercase tracking-wider">{s}</Badge>
-                           ))}
-                        </div>
                       </div>
                       <Link href={`/volunteer/tasks/${task.id}`}>
-                        <Button className="w-full md:w-auto h-16 rounded-2xl bg-slate-950 hover:bg-black text-white px-10 font-black shadow-xl transition-all active:scale-95 text-lg">
+                        <Button className="w-full md:w-auto h-16 rounded-2xl bg-slate-950 hover:bg-black text-white px-10 font-black shadow-xl text-lg transition-all active:scale-95">
                           Mission Brief
                         </Button>
                       </Link>

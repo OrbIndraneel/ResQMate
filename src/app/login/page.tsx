@@ -123,7 +123,6 @@ export default function LoginPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center px-2">
                   <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Security Key</Label>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-[0.3em] text-primary hover:underline">Reset Key</Link>
                 </div>
                 <div className="relative">
                   <Input 
@@ -150,11 +149,6 @@ export default function LoginPage() {
           </Tabs>
         </CardContent>
         <CardFooter className="flex flex-col space-y-10 pb-20 pt-10">
-          <div className="flex items-center gap-8 w-full px-16">
-            <div className="h-px bg-slate-100 flex-1" />
-            <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">Auth Protocol</span>
-            <div className="h-px bg-slate-100 flex-1" />
-          </div>
           <div className="text-lg font-bold text-slate-500">
             Unauthorized?{" "}
             <Link href="/register" className="text-primary hover:underline font-black">
