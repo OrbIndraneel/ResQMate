@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Loader2, Send, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, Send, AlertCircle, ShieldAlert } from 'lucide-react';
 import { generateNGOTaskDescription } from '@/ai/flows/ngo-task-description-generator';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -27,7 +28,7 @@ const CATEGORIES = [
 ];
 
 export function TaskFormAI() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [brief, setBrief] = useState('');
@@ -39,6 +40,25 @@ export function TaskFormAI() {
   const [pointsValue, setPointsValue] = useState('50');
   const { toast } = useToast();
   const router = useRouter();
+
+  if (authLoading) {
+    return (
+      <div className="p-20 text-center flex flex-col items-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Validating Command Auth...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Alert variant="destructive" className="rounded-[2rem] border-2">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Authentication Required</AlertTitle>
+        <AlertDescription>You must be signed in as an NGO administrator to deploy new missions.</AlertDescription>
+      </Alert>
+    );
+  }
 
   const handleGenerateDescription = async () => {
     if (!brief) {
@@ -64,7 +84,7 @@ export function TaskFormAI() {
       toast({ 
         variant: "destructive",
         title: "AI Optimization Failed", 
-        description: "Could not connect to AI services. Please try manually drafting or check your connection."
+        description: "Could not connect to AI services. Please try manually drafting."
       });
     } finally {
       setGenerating(false);
@@ -73,16 +93,11 @@ export function TaskFormAI() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      toast({ variant: "destructive", title: "Auth Required", description: "You must be logged in to deploy tasks." });
-      return;
-    }
-
     setLoading(true);
     try {
       await addDoc(collection(db, 'tasks'), {
         title: brief,
-        description: detailed || brief, // Fallback to brief if detailed is empty
+        description: detailed || brief,
         urgency,
         category,
         location,
@@ -105,46 +120,45 @@ export function TaskFormAI() {
   };
 
   return (
-    <Card className="border-none shadow-2xl rounded-[2rem] overflow-hidden">
-      <CardHeader className="bg-slate-900 text-white p-8">
+    <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden">
+      <CardHeader className="bg-slate-900 text-white p-10">
         <div className="flex items-center gap-3 mb-2">
           <div className="bg-primary p-2 rounded-xl">
-            <Send className="h-5 w-5" />
+            <Send className="h-6 w-6" />
           </div>
-          <CardTitle className="text-2xl font-black">Mission Dispatch</CardTitle>
+          <CardTitle className="text-3xl font-black">Mission Dispatch</CardTitle>
         </div>
-        <CardDescription className="text-slate-400">Deploy high-impact tasks to our verified responder network.</CardDescription>
+        <CardDescription className="text-slate-400 font-medium">Deploy high-impact tasks to our verified responder network.</CardDescription>
       </CardHeader>
-      <CardContent className="p-8">
+      <CardContent className="p-10">
         {!detailed && (
-          <Alert className="mb-8 bg-blue-50 border-blue-100 text-blue-800 rounded-2xl">
-            <Sparkles className="h-4 w-4 text-blue-600" />
-            <AlertTitle className="font-bold">AI Assistance Available</AlertTitle>
-            <AlertDescription>Enter a quick summary and click "AI Expand" to generate professional operational instructions.</AlertDescription>
+          <Alert className="mb-10 bg-blue-50 border-blue-100 text-blue-800 rounded-3xl border-2">
+            <Sparkles className="h-5 w-5 text-blue-600" />
+            <AlertTitle className="font-black text-lg">AI Assistance Ready</AlertTitle>
+            <AlertDescription className="font-medium">Enter a quick summary and click "AI Expand" to generate professional operational instructions.</AlertDescription>
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-10">
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="brief" className="text-slate-700 font-bold px-1">Mission Summary</Label>
-              <div className="flex gap-3">
+              <Label htmlFor="brief" className="text-slate-700 font-black px-1 uppercase text-xs tracking-widest">Mission Summary</Label>
+              <div className="flex flex-col md:flex-row gap-4">
                 <Input 
                   id="brief" 
                   placeholder="e.g. Emergency Food Supply Delivery to Sector 4" 
                   value={brief}
                   onChange={(e) => setBrief(e.target.value)}
                   required
-                  className="h-14 rounded-2xl border-slate-200 shadow-sm"
+                  className="h-16 rounded-2xl border-slate-200 shadow-sm text-lg font-bold"
                 />
                 <Button 
                   type="button" 
-                  variant="secondary" 
-                  className="shrink-0 h-14 px-6 rounded-2xl bg-primary text-white hover:bg-primary/90 font-bold shadow-lg shadow-primary/20"
+                  className="shrink-0 h-16 px-8 rounded-2xl bg-primary text-white hover:bg-primary/90 font-black shadow-xl shadow-primary/20 transition-all active:scale-95"
                   onClick={handleGenerateDescription}
                   disabled={generating}
                 >
-                  {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 mr-2" />}
+                  {generating ? <Loader2 className="h-6 w-6 animate-spin" /> : <Sparkles className="h-6 w-6 mr-2" />}
                   AI Expand
                 </Button>
               </div>
@@ -152,12 +166,12 @@ export function TaskFormAI() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="category" className="text-slate-700 font-bold px-1">Category</Label>
+                <Label htmlFor="category" className="text-slate-700 font-black px-1 text-xs tracking-widest">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-12 rounded-xl border-slate-200">
-                    <SelectValue placeholder="Select category" />
+                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 font-bold">
+                    <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-none shadow-2xl">
+                  <SelectContent className="rounded-2xl border-none shadow-2xl">
                     {CATEGORIES.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
@@ -165,12 +179,12 @@ export function TaskFormAI() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="urgency" className="text-slate-700 font-bold px-1">Urgency</Label>
+                <Label htmlFor="urgency" className="text-slate-700 font-black px-1 text-xs tracking-widest">Urgency</Label>
                 <Select value={urgency} onValueChange={(val: any) => setUrgency(val)}>
-                  <SelectTrigger className="h-12 rounded-xl border-slate-200">
-                    <SelectValue placeholder="Select urgency" />
+                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 font-bold">
+                    <SelectValue placeholder="Urgency" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-none shadow-2xl">
+                  <SelectContent className="rounded-2xl border-none shadow-2xl">
                     <SelectItem value="normal">Normal</SelectItem>
                     <SelectItem value="urgent">Urgent</SelectItem>
                     <SelectItem value="emergency">Emergency</SelectItem>
@@ -178,18 +192,18 @@ export function TaskFormAI() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location" className="text-slate-700 font-bold px-1">Location</Label>
+                <Label htmlFor="location" className="text-slate-700 font-black px-1 text-xs tracking-widest">Location</Label>
                 <Input 
                   id="location" 
                   placeholder="e.g. City Hall Plaza" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   required
-                  className="h-12 rounded-xl border-slate-200"
+                  className="h-14 rounded-2xl border-slate-200 font-bold"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="points" className="text-slate-700 font-bold px-1">Reward Points</Label>
+                <Label htmlFor="points" className="text-slate-700 font-black px-1 text-xs tracking-widest">Impact Pts</Label>
                 <Input 
                   id="points" 
                   type="number"
@@ -197,28 +211,28 @@ export function TaskFormAI() {
                   value={pointsValue}
                   onChange={(e) => setPointsValue(e.target.value)}
                   required
-                  className="h-12 rounded-xl border-slate-200"
+                  className="h-14 rounded-2xl border-slate-200 font-bold"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="skills" className="text-slate-700 font-bold px-1">Required Skills (Comma separated)</Label>
+              <Label htmlFor="skills" className="text-slate-700 font-black px-1 text-xs tracking-widest">Required Expertise (Comma separated)</Label>
               <Input 
                 id="skills" 
                 placeholder="e.g. Driving, First Aid, Logistics" 
                 value={skills}
                 onChange={(e) => setSkills(e.target.value)}
-                className="h-12 rounded-xl border-slate-200"
+                className="h-14 rounded-2xl border-slate-200 font-bold"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="detailed" className="text-slate-700 font-bold px-1">Operational Instructions</Label>
+            <Label htmlFor="detailed" className="text-slate-700 font-black px-1 text-xs tracking-widest">Mission Plan & Instructions</Label>
             <Textarea 
               id="detailed" 
-              className="min-h-[250px] rounded-[2rem] border-slate-200 font-medium text-slate-600 leading-relaxed p-6" 
+              className="min-h-[300px] rounded-[2.5rem] border-slate-200 font-medium text-slate-600 leading-relaxed p-8 text-lg" 
               placeholder="Use 'AI Expand' or manually draft the mission plan here..."
               value={detailed}
               onChange={(e) => setDetailed(e.target.value)}
@@ -226,9 +240,9 @@ export function TaskFormAI() {
             />
           </div>
 
-          <Button type="submit" className="w-full h-16 rounded-3xl bg-slate-900 hover:bg-black text-white text-lg font-black shadow-2xl transition-all" disabled={loading}>
-            {loading ? <Loader2 className="mr-3 h-6 w-6 animate-spin" /> : <Send className="mr-3 h-6 w-6" />}
-            Deploy Mission Now
+          <Button type="submit" className="w-full h-20 rounded-[2rem] bg-slate-900 hover:bg-black text-white text-xl font-black shadow-2xl transition-all active:scale-95" disabled={loading}>
+            {loading ? <Loader2 className="mr-3 h-8 w-8 animate-spin" /> : <Send className="mr-3 h-8 w-8" />}
+            Deploy Mission to Responders
           </Button>
         </form>
       </CardContent>
