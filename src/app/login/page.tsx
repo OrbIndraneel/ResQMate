@@ -2,17 +2,17 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Shield, Upload, Check, Mail, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Shield, Check, Mail, Sparkles, AlertCircle, Loader2, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { auth, db } from "@/lib/firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -170,11 +170,29 @@ export default function LoginPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const toggleSkill = (skill: string) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.includes(skill) ? prev.skills.filter(s => s !== skill) : [...prev.skills, skill]
-    }));
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      toast({
+        variant: "destructive",
+        title: "Missing Email",
+        description: "Please enter your email address to receive a reset link.",
+      });
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, formData.email.toLowerCase());
+      toast({
+        title: "Reset Link Sent",
+        description: "Please check your inbox (and spam folder) for the password recovery link.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Recovery Error",
+        description: "Could not send reset link. Please verify the email address.",
+      });
+    }
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -187,62 +205,80 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         // LOGIN LOGIC
-        const userCredential = await signInWithEmailAndPassword(auth, email, formData.password);
-        const user = userCredential.user;
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, formData.password);
+          const user = userCredential.user;
 
-        const userRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userRef);
+          const userRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userRef);
 
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          if (data.role !== role) {
-            throw new Error(`Account mismatch. This node is registered as a ${data.role}.`);
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            if (data.role !== role) {
+              throw new Error(`Account mismatch. This node is registered as a ${data.role}. Please select the correct role above.`);
+            }
+            toast({ title: "Link Established", description: "Entering command terminal..." });
+            router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
+            return;
           }
-          toast({ title: "Link Established", description: "Entering command terminal..." });
-          router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
-          return;
+
+          const regRef = doc(db, 'registrations', user.uid);
+          const regDoc = await getDoc(regRef);
+
+          if (regDoc.exists()) {
+            setIsPendingReview(true);
+            setLoading(false);
+            return;
+          }
+
+          setStatusError("Node record not found in database. Contact support if this persists.");
+        } catch (error: any) {
+          let errorMsg = "Authentication Failure: " + error.message;
+          if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            errorMsg = "Invalid email or password. Please check your credentials and try again.";
+          }
+          throw new Error(errorMsg);
         }
-
-        const regRef = doc(db, 'registrations', user.uid);
-        const regDoc = await getDoc(regRef);
-
-        if (regDoc.exists()) {
-          setIsPendingReview(true);
-          setLoading(false);
-          return;
-        }
-
-        setStatusError("Node not found in registry. Please verify credentials.");
       } else {
         // REGISTRATION LOGIC
-        const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);
-        const user = userCredential.user;
-        
-        const displayName = role === 'volunteer' ? formData.name : formData.name;
-        await updateProfile(user, { displayName });
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);
+          const user = userCredential.user;
+          
+          const displayName = formData.name;
+          await updateProfile(user, { displayName });
 
-        const registrationData = {
-          uid: user.uid,
-          email: email,
-          role: role,
-          submittedAt: new Date().toISOString(),
-          verificationStatus: 'pending',
-          ...(role === 'volunteer' ? {
-            firstName: formData.name.split(' ')[0],
-            lastName: formData.name.split(' ').slice(1).join(' '),
-            skills: formData.skills,
-            location: formData.address,
-            phone: formData.contact,
-          } : {
-            organizationName: formData.name,
-            adminName: formData.adminName,
-            location: formData.address,
-          })
-        };
+          const registrationData = {
+            uid: user.uid,
+            email: email,
+            role: role,
+            submittedAt: new Date().toISOString(),
+            verificationStatus: 'pending',
+            ...(role === 'volunteer' ? {
+              firstName: formData.name.split(' ')[0],
+              lastName: formData.name.split(' ').slice(1).join(' '),
+              skills: formData.skills,
+              location: formData.address,
+              phone: formData.contact,
+            } : {
+              organizationName: formData.name,
+              adminName: formData.adminName,
+              location: formData.address,
+            })
+          };
 
-        await setDoc(doc(db, 'registrations', user.uid), registrationData);
-        setIsPendingReview(true);
-        toast({ title: "Signal Sent", description: "Registration submitted for admin review." });
+          await setDoc(doc(db, 'registrations', user.uid), registrationData);
+          setIsPendingReview(true);
+          toast({ title: "Signal Sent", description: "Registration submitted for admin review." });
+        } catch (error: any) {
+          let errorMsg = error.message;
+          if (error.code === 'auth/email-already-in-use') {
+            errorMsg = "This email is already registered. If you forgot your password, please use the login screen to reset it.";
+          } else if (error.code === 'auth/weak-password') {
+            errorMsg = "The password is too weak. Please use at least 6 characters.";
+          }
+          throw new Error(errorMsg);
+        }
       }
     } catch (error: any) {
       console.error(error);
@@ -336,7 +372,7 @@ export default function LoginPage() {
         <div className="relative z-20 flex items-end justify-center h-[550px] mb-12">
           <div className="relative" style={{ width: '550px', height: '400px' }}>
             
-            {/* Characters using your logic */}
+            {/* Characters */}
             <div ref={purpleRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '70px', width: '180px', backgroundColor: '#6C3FF5', borderRadius: '40px 40px 0 0', zIndex: 1,
@@ -468,13 +504,25 @@ export default function LoginPage() {
                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Secure Identifier (Email)</Label>
                 <Input
                   type="email" name="email" placeholder="node@ops.network"
+                  value={formData.email}
                   onFocus={() => setIsTyping(true)} onBlur={() => setIsTyping(false)}
                   className="h-14 rounded-2xl border-slate-200 font-bold" onChange={handleChange} required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Encryption Key (Password)</Label>
+                <div className="flex justify-between items-center px-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Encryption Key (Password)</Label>
+                  {isLogin && (
+                    <button 
+                      type="button" 
+                      onClick={handleForgotPassword}
+                      className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                    >
+                      Recovery Link?
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"} name="password" placeholder="••••••••"
@@ -506,4 +554,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
