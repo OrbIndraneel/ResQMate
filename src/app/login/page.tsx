@@ -171,7 +171,8 @@ export default function LoginPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleForgotPassword = async () => {
-    if (!formData.email) {
+    const email = formData.email.trim().toLowerCase();
+    if (!email) {
       toast({
         variant: "destructive",
         title: "Missing Email",
@@ -181,7 +182,7 @@ export default function LoginPage() {
     }
 
     try {
-      await sendPasswordResetEmail(auth, formData.email.toLowerCase());
+      await sendPasswordResetEmail(auth, email);
       toast({
         title: "Reset Link Sent",
         description: "Please check your inbox (and spam folder) for the password recovery link.",
@@ -200,13 +201,26 @@ export default function LoginPage() {
     setLoading(true);
     setStatusError(null);
 
-    const email = formData.email.toLowerCase();
+    const email = formData.email.trim().toLowerCase();
+    const password = formData.password;
+
+    if (!email) {
+      setStatusError("Email is required.");
+      setLoading(false);
+      return;
+    }
+
+    if (!password) {
+      setStatusError("Password is required.");
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isLogin) {
         // LOGIN LOGIC
         try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, formData.password);
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
 
           const userRef = doc(db, 'users', user.uid);
@@ -233,16 +247,20 @@ export default function LoginPage() {
 
           setStatusError("Node record not found in database. Contact support if this persists.");
         } catch (error: any) {
-          let errorMsg = "Authentication Failure: " + error.message;
-          if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+          let errorMsg = "Authentication Failure: " + (error.message || "Unknown error occurred.");
+          
+          if (error.code === 'auth/invalid-email') {
+            errorMsg = "The email address format is invalid. Please double-check your input.";
+          } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             errorMsg = "Invalid email or password. Please check your credentials and try again.";
           }
-          throw new Error(errorMsg);
+          
+          setStatusError(errorMsg);
         }
       } else {
         // REGISTRATION LOGIC
         try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, formData.password);
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           
           const displayName = formData.name;
@@ -276,14 +294,15 @@ export default function LoginPage() {
             errorMsg = "This email is already registered. If you forgot your password, please use the login screen to reset it.";
           } else if (error.code === 'auth/weak-password') {
             errorMsg = "The password is too weak. Please use at least 6 characters.";
+          } else if (error.code === 'auth/invalid-email') {
+            errorMsg = "The email address format is invalid.";
           }
-          throw new Error(errorMsg);
+          setStatusError(errorMsg);
         }
       }
     } catch (error: any) {
       console.error(error);
-      setStatusError(error.message);
-      toast({ variant: "destructive", title: "Auth Failure", description: error.message });
+      setStatusError(error.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -543,7 +562,7 @@ export default function LoginPage() {
 
           <div className="text-center mt-10 space-y-4">
             <p className="text-sm font-bold text-slate-400">
-              {isLogin ? "Unauthorized Node?" : "Credentialed Already?"}{" "}
+              {isLogin ? "Don't have an account?" : "Credentialed Already?"}{" "}
               <button type="button" onClick={() => toggleMode(!isLogin)} className="text-primary hover:underline font-black">
                 {isLogin ? "Register Access" : "Secure Sign In"}
               </button>
