@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -73,25 +74,42 @@ export default {
       },
       keyframes: {
         'accordion-down': {
-          from: {
-            height: '0',
-          },
-          to: {
-            height: 'var(--radix-accordion-content-height)',
-          },
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
         },
         'accordion-up': {
-          from: {
-            height: 'var(--radix-accordion-content-height)',
-          },
-          to: {
-            height: '0',
-          },
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+        orbit: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        'orbit-reverse': {
+          '0%': { transform: 'rotate(360deg)' },
+          '100%': { transform: 'rotate(0deg)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translate(-50%, -50%) translateY(0)' },
+          '50%': { transform: 'translate(-50%, -50%) translateY(-10px)' },
+        },
+        'float-slow': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        'pulse-ring': {
+          '0%': { transform: 'translate(-50%, -50%) scale(0.33)', opacity: '1' },
+          '80%, 100%': { transform: 'translate(-50%, -50%) scale(1.2)', opacity: '0' },
         },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'orbit': 'orbit 26s linear infinite',
+        'orbit-reverse': 'orbit-reverse 20s linear infinite',
+        'float': 'float 3s ease-in-out infinite',
+        'float-slow': 'float-slow 4s ease-in-out infinite',
+        'pulse-ring': 'pulse-ring 3s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
       },
     },
   },
