@@ -1,13 +1,13 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2, LogOut, Trash2, AlertTriangle, Globe, MapPin } from 'lucide-react';
+import { Check, X, Eye, Loader2, ShieldCheck, FileText, User, Building2, LogOut, Trash2, AlertTriangle, Globe, MapPin, ArrowLeft } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, getDocs, deleteDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -122,9 +122,16 @@ export default function AdminVerifyPage() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <header className="px-6 h-20 flex items-center border-b bg-slate-900 text-white sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-6 w-6 text-primary" />
-          <span className="font-black text-xl tracking-tight">Admin Operations</span>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-6 w-6 text-primary" />
+            <span className="font-black text-xl tracking-tight">Admin Operations</span>
+          </div>
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white font-bold gap-2">
+              <ArrowLeft className="h-4 w-4" /> Back to Home
+            </Button>
+          </Link>
         </div>
         <div className="ml-auto flex items-center gap-4">
           <Badge variant="outline" className="border-emerald-500 text-emerald-500 font-black text-[10px] tracking-widest">SECURE CHANNEL</Badge>

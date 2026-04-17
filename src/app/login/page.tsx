@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Shield, Mail, Sparkles, AlertCircle, Loader2, KeyRound } from "lucide-react";
+import { Eye, EyeOff, Shield, Mail, Sparkles, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +14,6 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfi
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-const AVAILABLE_SKILLS = [
-  "First Aid", "Nursing", "Heavy Lifting", "Logistics", "Driving", 
-  "Translation", "IT Support", "Cooking", "Construction", 
-  "Counseling", "Security", "Search & Rescue"
-];
 
 const Pupil = ({ size = 12, maxDistance = 5, pupilColor = "black", forceLookX, forceLookY }: any) => {
   const [mouseX, setMouseX] = useState(0);
@@ -235,8 +228,6 @@ export default function LoginPage() {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
 
-          // Multi-step profile check
-          // 1. Check verified users
           const userRef = doc(db, 'users', user.uid);
           let userDoc = await getDoc(userRef);
 
@@ -258,7 +249,6 @@ export default function LoginPage() {
             return;
           }
 
-          // 2. Check pending registrations
           const regRef = doc(db, 'registrations', user.uid);
           let regDoc = await getDoc(regRef);
 
@@ -292,7 +282,6 @@ export default function LoginPage() {
           setStatusError(errorMsg);
         }
       } else {
-        // Registration Flow
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
@@ -406,9 +395,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-white overflow-hidden">
+    <div className="min-h-screen grid lg:grid-cols-2 bg-white overflow-hidden relative">
+      <Link href="/" className="absolute top-8 left-8 lg:left-auto lg:right-8 z-50">
+        <Button variant="outline" className="rounded-2xl border-2 font-black gap-2 bg-white/80 backdrop-blur-sm shadow-xl">
+          <ArrowLeft className="h-4 w-4" /> Back to Home
+        </Button>
+      </Link>
       
-      {/* Character Visualization Side */}
       <div className="relative hidden lg:flex flex-col justify-between bg-slate-950 p-16 overflow-hidden">
         <Link href="/" className="relative z-20 flex items-center gap-4 group">
           <div className="bg-primary p-3 rounded-2xl text-white shadow-2xl shadow-primary/20 group-hover:rotate-12 transition-transform duration-500">
@@ -419,8 +412,6 @@ export default function LoginPage() {
 
         <div className="relative z-20 flex items-end justify-center h-[550px] mb-12">
           <div className="relative" style={{ width: '550px', height: '400px' }}>
-            
-            {/* Purple Character */}
             <div ref={purpleRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '70px', width: '180px', backgroundColor: '#6C3FF5', borderRadius: '40px 40px 0 0', zIndex: 1,
@@ -442,7 +433,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Black Character */}
             <div ref={blackRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '240px', width: '120px', height: '310px', backgroundColor: '#1e293b', borderRadius: '30px 30px 0 0', zIndex: 2,
@@ -464,7 +454,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Orange Character */}
             <div ref={orangeRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '0px', width: '240px', height: '200px', backgroundColor: '#f97316', borderRadius: '120px 120px 0 0', zIndex: 3,
@@ -481,7 +470,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Yellow Character */}
             <div ref={yellowRef} className="absolute bottom-0 transition-all duration-700 ease-in-out"
               style={{
                 left: '310px', width: '140px', height: '230px', backgroundColor: '#fbbf24', borderRadius: '70px 70px 0 0', zIndex: 4,
@@ -508,7 +496,6 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px] pointer-events-none" />
       </div>
 
-      {/* Form Side */}
       <div className="flex flex-col items-center justify-center p-8 bg-white relative overflow-y-auto">
         <div className="w-full max-w-md">
           <AnimatePresence mode="wait">

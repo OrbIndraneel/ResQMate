@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Shield, Bell, LogOut, LayoutDashboard, Settings } from 'lucide-react';
+import { Shield, Bell, LogOut, LayoutDashboard, Settings, ArrowLeft } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,13 +21,21 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ userRole, userName }: SiteHeaderProps) {
   return (
-    <header className="px-8 h-24 flex items-center nav-blur">
-      <Link className="flex items-center gap-3 group" href="/">
-        <div className="bg-primary p-2.5 rounded-2xl text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
-          <Shield className="h-6 w-6" />
-        </div>
-        <span className="font-headline font-black text-2xl tracking-tighter text-slate-900">ResQMate</span>
-      </Link>
+    <header className="px-8 h-24 flex items-center nav-blur sticky top-0 z-50">
+      <div className="flex items-center gap-6">
+        <Link className="flex items-center gap-3 group" href="/">
+          <div className="bg-primary p-2.5 rounded-2xl text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
+            <Shield className="h-6 w-6" />
+          </div>
+          <span className="font-headline font-black text-2xl tracking-tighter text-slate-900">ResQMate</span>
+        </Link>
+        
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-2 rounded-xl font-bold text-slate-500 hover:text-primary transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Back to Home
+          </Button>
+        </Link>
+      </div>
       
       <div className="ml-auto flex items-center gap-5">
         <div className="hidden md:flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">

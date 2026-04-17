@@ -1,13 +1,13 @@
-
 "use client";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldAlert, Loader2, Send, KeyRound, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Loader2, Send, KeyRound, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -119,7 +119,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 relative">
+      <Link href="/" className="absolute top-8 left-8">
+        <Button variant="ghost" className="text-slate-400 hover:text-white font-bold gap-2">
+          <ArrowLeft className="h-4 w-4" /> Back to Home
+        </Button>
+      </Link>
+
       <Card className="w-full max-w-md shadow-2xl border-slate-800 bg-slate-900 text-slate-100">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
