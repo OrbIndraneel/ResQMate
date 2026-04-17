@@ -270,7 +270,7 @@ export default function LoginPage() {
             return;
           }
 
-          setStatusError("Node record not found in command registry. If you just registered, please wait for manual vetting.");
+          setStatusError("Node record not found in command registry. If your database profile was deleted, please contact support to reset your authentication node.");
         } catch (error: any) {
           console.error("Login attempt failure:", error);
           let errorMsg = "Authentication Failure: Access Denied.";
@@ -314,7 +314,7 @@ export default function LoginPage() {
         } catch (error: any) {
           let errorMsg = error.message;
           if (error.code === 'auth/email-already-in-use') {
-            errorMsg = "This email is already in the network. Try logging in or resetting your key.";
+            errorMsg = "This email is already registered in our core authentication system. If your profile was deleted from the database, please use 'Secure Link' (Sign In) to log in instead of registering again.";
           }
           setStatusError(errorMsg);
         }
