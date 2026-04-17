@@ -22,7 +22,6 @@ const AVAILABLE_SKILLS = [
   "Counseling", "Security", "Search & Rescue"
 ];
 
-// Animated Pupil Component
 const Pupil = ({ size = 12, maxDistance = 5, pupilColor = "black", forceLookX, forceLookY }: any) => {
   const [mouseX, setMouseX] = useState(0);
   const [mouseY, setMouseY] = useState(0);
@@ -65,7 +64,6 @@ const Pupil = ({ size = 12, maxDistance = 5, pupilColor = "black", forceLookX, f
   );
 };
 
-// Animated EyeBall Component
 const EyeBall = ({ size = 48, pupilSize = 16, maxDistance = 10, eyeColor = "white", pupilColor = "black", isBlinking = false, forceLookX, forceLookY }: any) => {
   const [mouseX, setMouseX] = useState(0);
   const [mouseY, setMouseY] = useState(0);
@@ -225,7 +223,7 @@ export default function LoginPage() {
       return;
     }
 
-    if (!password) {
+    if (!password && isLogin) {
       setStatusError("Encryption key (password) is required.");
       setLoading(false);
       return;
@@ -237,49 +235,52 @@ export default function LoginPage() {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
 
-          // Attempt 1: Direct ID Lookup
+          // Multi-step profile check
+          // 1. Check verified users
           const userRef = doc(db, 'users', user.uid);
           let userDoc = await getDoc(userRef);
 
-          // Fallback 1: Query by Email in users
           if (!userDoc.exists()) {
             const q = query(collection(db, 'users'), where('email', '==', email));
             const querySnap = await getDocs(q);
-            if (!querySnap.empty) {
-              userDoc = querySnap.docs[0];
-            }
+            if (!querySnap.empty) userDoc = querySnap.docs[0];
           }
 
           if (userDoc.exists()) {
             const data = userDoc.data();
             if (data.role !== role) {
-              throw new Error(`Account mismatch. This node is registered as a ${data.role}.`);
+              setStatusError(`Role Mismatch: This account is registered as a ${data.role.toUpperCase()}. Please change the toggle and try again.`);
+              setLoading(false);
+              return;
             }
             toast({ title: "Link Established", description: "Entering command terminal..." });
             router.push(role === 'ngo' ? '/ngo/dashboard' : '/volunteer/dashboard');
             return;
           }
 
-          // Attempt 2: Registration ID Lookup
+          // 2. Check pending registrations
           const regRef = doc(db, 'registrations', user.uid);
           let regDoc = await getDoc(regRef);
 
-          // Fallback 2: Query by Email in registrations
           if (!regDoc.exists()) {
             const q = query(collection(db, 'registrations'), where('email', '==', email));
             const querySnap = await getDocs(q);
-            if (!querySnap.empty) {
-              regDoc = querySnap.docs[0];
-            }
+            if (!querySnap.empty) regDoc = querySnap.docs[0];
           }
 
           if (regDoc.exists()) {
+            const data = regDoc.data();
+            if (data.role !== role) {
+              setStatusError(`Role Mismatch: This pending application is for a ${data.role.toUpperCase()} role.`);
+              setLoading(false);
+              return;
+            }
             setIsPendingReview(true);
             setLoading(false);
             return;
           }
 
-          setStatusError("Node record not found. Contact support for vetting status.");
+          setStatusError("Node record not found in command registry. If you just registered, please wait for manual vetting.");
         } catch (error: any) {
           console.error("Login attempt failure:", error);
           let errorMsg = "Authentication Failure: Access Denied.";
@@ -291,12 +292,12 @@ export default function LoginPage() {
           setStatusError(errorMsg);
         }
       } else {
+        // Registration Flow
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
           
-          const displayName = formData.name;
-          await updateProfile(user, { displayName });
+          await updateProfile(user, { displayName: formData.name });
 
           const registrationData = {
             uid: user.uid,
@@ -325,8 +326,6 @@ export default function LoginPage() {
           let errorMsg = error.message;
           if (error.code === 'auth/email-already-in-use') {
             errorMsg = "This email is already in the network. Try logging in or resetting your key.";
-          } else if (error.code === 'auth/weak-password') {
-            errorMsg = "Encryption key too weak. Use at least 6 characters.";
           }
           setStatusError(errorMsg);
         }
