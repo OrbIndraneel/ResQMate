@@ -7,7 +7,7 @@ import { motion, useInView } from "framer-motion";
 import {
   ArrowRight, Shield, Globe, CheckCircle,
   Activity, MapPin, Users, Clock, ChevronRight,
-  Heart, Star, Bell, TrendingUp, Zap, Check,
+  Heart, Star, Bell, TrendingUp, Zap, Check, Lock,
 } from "lucide-react";
 
 /* ─── Animated Counter ───────────────────────────── */
@@ -152,13 +152,6 @@ export default function Home() {
     { icon: TrendingUp,  color: "#57A498",  title: "Impact Analytics",      desc: "Live leaderboards and metrics keep volunteers motivated and organizations accountable." },
     { icon: Users,       color: "#7c3aed",  title: "Multi-Role Access",     desc: "Separate dashboards for NGOs and volunteers ensure each role sees exactly what they need." },
     { icon: Star,        color: "#b45309",  title: "Trust Scoring",         desc: "A points-based reputation system surfaces your most reliable, high-impact responders first." },
-  ];
-
-  const featureList = [
-    { icon: Globe,       color: "#2B7B7B", title: "GPS-based volunteer matching", desc: "Demand connecting volunteers with emergencies in real time" },
-    { icon: Shield,      color: "#34535E", title: "Easy QR verification",         desc: "A few clicks closes the first verification handoff" },
-    { icon: Activity,    color: "#57A498", title: "Financial & Operations",        desc: "Full audit trail of assignment, payments and reports" },
-    { icon: MapPin,      color: "#CF223B", title: "Filter by specialty & region",  desc: "Find the right volunteer based on your area and specialization" },
   ];
 
   const steps = [
@@ -715,6 +708,9 @@ export default function Home() {
             <a href="#features" className="hover:text-slate-600 transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-slate-600 transition-colors">How it works</a>
             <Link href="/login" className="hover:text-slate-600 transition-colors">Login</Link>
+            <Link href="/admin/login" className="hover:text-slate-600 transition-colors flex items-center gap-1">
+              <Lock className="h-3 w-3" /> Admin Gateway
+            </Link>
           </div>
         </div>
       </footer>
