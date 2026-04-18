@@ -1,6 +1,8 @@
+
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Shield, Bell, LogOut, LayoutDashboard, Settings, ArrowLeft } from 'lucide-react';
 import {
@@ -13,6 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from '@/components/ui/badge';
+import { PlaceHolderImages } from "@/lib/placeholder-images";
+
+const logoAsset = PlaceHolderImages.find(img => img.id === 'main-logo');
 
 interface SiteHeaderProps {
   userRole: 'ngo' | 'volunteer';
@@ -24,8 +29,8 @@ export function SiteHeader({ userRole, userName }: SiteHeaderProps) {
     <header className="px-8 h-24 flex items-center nav-blur sticky top-0 z-50">
       <div className="flex items-center gap-6">
         <Link className="flex items-center gap-3 group" href="/">
-          <div className="bg-primary p-2.5 rounded-2xl text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
-            <Shield className="h-6 w-6" />
+          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg group-hover:rotate-12 transition-transform">
+            {logoAsset && <Image src={logoAsset.imageUrl} alt="Logo" width={40} height={40} className="object-cover" data-ai-hint={logoAsset.imageHint} />}
           </div>
           <span className="font-headline font-black text-2xl tracking-tighter text-slate-900">ResQMate</span>
         </Link>

@@ -1,6 +1,12 @@
 {
   "placeholderImages": [
     {
+      "id": "main-logo",
+      "description": "ResQMate Official Logo - Heart and Shield",
+      "imageUrl": "https://picsum.photos/seed/resqmate-logo-heart/200/200",
+      "imageHint": "humanitarian logo heart"
+    },
+    {
       "id": "hero-bg",
       "description": "Humanitarian relief efforts background",
       "imageUrl": "https://picsum.photos/seed/resqhero/1200/600",
