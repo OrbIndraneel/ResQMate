@@ -1,11 +1,12 @@
+
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Shield, Upload, Check, Mail, Sparkles, Loader2, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Shield, Upload, Check, Mail, Sparkles, Loader2, ArrowLeft, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +20,12 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 const logoAsset = PlaceHolderImages.find(img => img.id === 'main-logo');
 
 const EyeBall = ({ size = 48, pupilSize = 16, maxDistance = 10, eyeColor = "white", pupilColor = "black", isBlinking = false, forceLookX, forceLookY }: any) => {
-  const [mouseX, setMouseX] = useState(0);
-  const [mouseY, setMouseY] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const eyeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMouseX(e.clientX);
-      setMouseY(e.clientY);
+      setMousePos({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
@@ -39,8 +38,8 @@ const EyeBall = ({ size = 48, pupilSize = 16, maxDistance = 10, eyeColor = "whit
     const eye = eyeRef.current.getBoundingClientRect();
     const eyeCenterX = eye.left + eye.width / 2;
     const eyeCenterY = eye.top + eye.height / 2;
-    const deltaX = mouseX - eyeCenterX;
-    const deltaY = mouseY - eyeCenterY;
+    const deltaX = mousePos.x - eyeCenterX;
+    const deltaY = mousePos.y - eyeCenterY;
     const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), maxDistance);
     const angle = Math.atan2(deltaY, deltaX);
     return { x: Math.cos(angle) * distance, y: Math.sin(angle) * distance };
@@ -68,14 +67,12 @@ const EyeBall = ({ size = 48, pupilSize = 16, maxDistance = 10, eyeColor = "whit
 };
 
 const Pupil = ({ size = 12, maxDistance = 5, pupilColor = "black", forceLookX, forceLookY }: any) => {
-  const [mouseX, setMouseX] = useState(0);
-  const [mouseY, setMouseY] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const pupilRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMouseX(e.clientX);
-      setMouseY(e.clientY);
+      setMousePos({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
@@ -88,8 +85,8 @@ const Pupil = ({ size = 12, maxDistance = 5, pupilColor = "black", forceLookX, f
     const pupil = pupilRef.current.getBoundingClientRect();
     const pupilCenterX = pupil.left + pupil.width / 2;
     const pupilCenterY = pupil.top + pupil.height / 2;
-    const deltaX = mouseX - pupilCenterX;
-    const deltaY = mouseY - pupilCenterY;
+    const deltaX = mousePos.x - pupilCenterX;
+    const deltaY = mousePos.y - pupilCenterY;
     const distance = Math.min(Math.sqrt(deltaX ** 2 + deltaY ** 2), maxDistance);
     const angle = Math.atan2(deltaY, deltaX);
     return { x: Math.cos(angle) * distance, y: Math.sin(angle) * distance };
@@ -125,7 +122,7 @@ function RoleToggle({ role, setRole }: { role: string, setRole: (r: string) => v
   );
 }
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -142,8 +139,7 @@ export default function AuthPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [mouseX, setMouseX] = useState(0);
-  const [mouseY, setMouseY] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isPurpleBlinking, setIsPurpleBlinking] = useState(false);
   const [isBlackBlinking, setIsBlackBlinking] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -152,6 +148,32 @@ export default function AuthPage() {
   const purpleRef = useRef<HTMLDivElement>(null);
   const blackRef = useRef<HTMLDivElement>(null);
   const orangeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => { setMousePos({ x: e.clientX, y: e.clientY }); };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  useEffect(() => {
+    const scheduleBlink = () => {
+      const blinkTimeout = setTimeout(() => {
+        setIsPurpleBlinking(true);
+        setTimeout(() => { setIsPurpleBlinking(false); scheduleBlink(); }, 150);
+      }, Math.random() * 4000 + 3000);
+      return blinkTimeout;
+    };
+    const t = scheduleBlink();
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (isTyping) {
+      setIsLookingAtEachOther(true);
+      const timer = setTimeout(() => setIsLookingAtEachOther(false), 800);
+      return () => clearTimeout(timer);
+    } else setIsLookingAtEachOther(false);
+  }, [isTyping]);
 
   const toggleMode = (loginMode: boolean) => {
     setIsLogin(loginMode);
@@ -171,7 +193,6 @@ export default function AuthPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
 
-        // Exhaustive search for the user record
         let userDoc = await getDoc(doc(db, 'users', uid));
         let userData = userDoc.data();
 
@@ -246,40 +267,14 @@ export default function AuthPage() {
     }
   };
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => { setMouseX(e.clientX); setMouseY(e.clientY); };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  useEffect(() => {
-    const scheduleBlink = () => {
-      const blinkTimeout = setTimeout(() => {
-        setIsPurpleBlinking(true);
-        setTimeout(() => { setIsPurpleBlinking(false); scheduleBlink(); }, 150);
-      }, Math.random() * 4000 + 3000);
-      return blinkTimeout;
-    };
-    const t = scheduleBlink();
-    return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    if (isTyping) {
-      setIsLookingAtEachOther(true);
-      const timer = setTimeout(() => setIsLookingAtEachOther(false), 800);
-      return () => clearTimeout(timer);
-    } else setIsLookingAtEachOther(false);
-  }, [isTyping]);
-
   const calculatePosition = (ref: React.RefObject<HTMLDivElement>) => {
     if (!ref.current) return { faceX: 0, faceY: 0, bodySkew: 0 };
     const rect = ref.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
-    const deltaX = mouseX - centerX;
+    const deltaX = mousePos.x - centerX;
     return {
       faceX: Math.max(-15, Math.min(15, deltaX / 20)),
-      faceY: Math.max(-10, Math.min(10, (mouseY - (rect.top + rect.height / 3)) / 30)),
+      faceY: Math.max(-10, Math.min(10, (mousePos.y - (rect.top + rect.height / 3)) / 30)),
       bodySkew: Math.max(-6, Math.min(6, -deltaX / 120))
     };
   };
@@ -374,7 +369,7 @@ export default function AuthPage() {
               {authError && (
                 <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <div className="p-4 bg-rose-50 border-2 border-rose-100 rounded-2xl flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                    <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-black text-rose-600 uppercase tracking-wider mb-1">Operational Alert</p>
                       <p className="text-sm font-bold text-rose-900 leading-tight">{authError}</p>
@@ -432,5 +427,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+      <AuthContent />
+    </Suspense>
   );
 }
