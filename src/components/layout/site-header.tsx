@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -30,7 +29,16 @@ export function SiteHeader({ userRole, userName }: SiteHeaderProps) {
       <div className="flex items-center gap-6">
         <Link className="flex items-center gap-3 group" href="/">
           <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg group-hover:rotate-12 transition-transform">
-            {logoAsset && <Image src={logoAsset.imageUrl} alt="Logo" width={40} height={40} className="object-cover" data-ai-hint={logoAsset.imageHint} />}
+            {logoAsset && (
+              <Image 
+                src={logoAsset.imageUrl} 
+                alt="ResQMate Logo" 
+                width={40} 
+                height={40} 
+                className="object-cover" 
+                data-ai-hint={logoAsset.imageHint} 
+              />
+            )}
           </div>
           <span className="font-headline font-black text-2xl tracking-tighter text-slate-900">ResQMate</span>
         </Link>
