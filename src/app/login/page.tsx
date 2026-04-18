@@ -126,6 +126,7 @@ function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'register');
   const [role, setRole] = useState("volunteer");
@@ -135,7 +136,7 @@ function AuthContent() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    name: "", email: "", password: "", proofUploaded: false
+    name: "", email: "", password: "", proofUploaded: false, proofImage: ""
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -180,6 +181,25 @@ function AuthContent() {
     setAuthError(null);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          proofUploaded: true,
+          proofImage: reader.result as string
+        }));
+        toast({
+          title: "Document Loaded",
+          description: "Operational credentials have been staged for verification.",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -210,7 +230,7 @@ function AuthContent() {
             setIsPending(true);
             return;
           }
-          setAuthError("Node record not found. Please register if you haven't already.");
+          setAuthError("Operational Alert: This identity is not found in the command registry. Please deploy a new node if you are a first-time responder.");
           return;
         }
 
@@ -228,12 +248,12 @@ function AuthContent() {
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        // Build registration data to avoid 'undefined' values which crash Firestore
         const registrationData: any = {
           uid: userCredential.user.uid,
           email,
           role,
           proofUploaded: formData.proofUploaded,
+          proofImage: formData.proofImage || "",
           submittedAt: new Date().toISOString()
         };
 
@@ -418,9 +438,26 @@ function AuthContent() {
             </div>
 
             {!isLogin && (
-              <Button type="button" variant="outline" className={cn("w-full h-14 rounded-2xl border-2 font-black transition-all", formData.proofUploaded ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "text-slate-400")} onClick={() => setFormData({...formData, proofUploaded: true})}>
-                {formData.proofUploaded ? <><Check className="mr-2 h-5 w-5" /> Document Loaded</> : <><Upload className="mr-2 h-5 w-5" /> Load Operational Credentials</>}
-              </Button>
+              <div className="space-y-2">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className={cn("w-full h-14 rounded-2xl border-2 font-black transition-all", formData.proofUploaded ? "bg-emerald-50 border-emerald-200 text-emerald-600" : "text-slate-400")} 
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {formData.proofUploaded ? <><Check className="mr-2 h-5 w-5" /> Document Loaded</> : <><Upload className="mr-2 h-5 w-5" /> Load Operational Credentials</>}
+                </Button>
+                {role === 'ngo' && !formData.proofUploaded && (
+                  <p className="text-[10px] text-slate-400 text-center uppercase tracking-widest">Official Registration Document Required</p>
+                )}
+              </div>
             )}
 
             <Button type="submit" className="w-full h-16 rounded-[1.5rem] text-xl font-black shadow-2xl shadow-primary/20" disabled={loading}>
