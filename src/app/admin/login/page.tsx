@@ -31,7 +31,9 @@ export default function AdminLoginPage() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ADMIN_WHITELIST.includes(email.toLowerCase())) {
+    const lowerEmail = email.trim().toLowerCase();
+    
+    if (!ADMIN_WHITELIST.includes(lowerEmail)) {
       toast({
         variant: "destructive",
         title: "Access Denied",
@@ -45,7 +47,8 @@ export default function AdminLoginPage() {
     setGeneratedOtp(mockOtp);
     
     try {
-      const result = await sendEmailOTP(email, mockOtp);
+      // Pass 'true' to indicate this is an admin request for whitelist verification
+      const result = await sendEmailOTP(lowerEmail, mockOtp, true);
       
       if (result?.error === "SMTP_MISSING") {
         setSmtpWarning(true);
@@ -57,7 +60,7 @@ export default function AdminLoginPage() {
       } else {
         toast({
           title: "Code Sent",
-          description: `Verification email sent to ${email}`,
+          description: `Verification email sent to ${lowerEmail}`,
         });
       }
       
@@ -66,7 +69,7 @@ export default function AdminLoginPage() {
       toast({
         variant: "destructive",
         title: "Dispatch Error",
-        description: error.message,
+        description: error.message || "Failed to deliver verification code.",
       });
     } finally {
       setLoading(false);
@@ -75,7 +78,7 @@ export default function AdminLoginPage() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp !== generatedOtp) {
+    if (otp.trim() !== generatedOtp) {
       toast({
         variant: "destructive",
         title: "Invalid Code",
@@ -85,20 +88,21 @@ export default function AdminLoginPage() {
     }
 
     setLoading(true);
+    const lowerEmail = email.trim().toLowerCase();
     try {
-      const adminRef = doc(db, 'admins', email.toLowerCase());
+      const adminRef = doc(db, 'admins', lowerEmail);
       const adminDoc = await getDoc(adminRef);
 
       if (!adminDoc.exists()) {
         await setDoc(adminRef, {
-          email: email.toLowerCase(),
+          email: lowerEmail,
           role: 'developer_admin',
           lastLogin: new Date().toISOString()
         });
       }
 
       localStorage.setItem('admin_session', JSON.stringify({
-        email: email.toLowerCase(),
+        email: lowerEmail,
         expiry: Date.now() + 3600000 // 1 hour session
       }));
 
