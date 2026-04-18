@@ -84,7 +84,7 @@ export function TaskFormAI() {
       toast({ 
         variant: "destructive",
         title: "AI Optimization Failed", 
-        description: "Could not connect to AI services. Please try manually drafting."
+        description: "Could not connect to AI services. Please try manually drafting the mission."
       });
     } finally {
       setGenerating(false);
