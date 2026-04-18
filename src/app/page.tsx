@@ -115,7 +115,7 @@ const HeroIllustration = memo(function HeroIllustration() {
             transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 220, damping: 18 }}
             className="absolute flex flex-col items-center gap-1 px-3 py-2 rounded-xl backdrop-blur-[6px] min-w-[76px]"
             style={{
-              left: x, top: y,
+              left: `${x}px`, top: `${y}px`,
               background: isBright ? "rgba(255,255,255,0.92)" : "rgba(52,83,94,0.85)",
               border: `1px solid ${isBright ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.2)"}`,
             }}
@@ -178,7 +178,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2.5">
           <Link href="/login" className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 sm:px-4 py-2 rounded-lg hover:bg-white/80">Sign In</Link>
-          <Link href="/register" className="text-sm font-bold text-white px-4 sm:px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.03] transition-all duration-200" style={{ background: "linear-gradient(135deg, #2B7B7B, #34535E)" }}>Get Started</Link>
+          <Link href="/login?mode=register" className="text-sm font-bold text-white px-4 sm:px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.03] transition-all duration-200" style={{ background: "linear-gradient(135deg, #2B7B7B, #34535E)" }}>Get Started</Link>
         </div>
       </motion.nav>
 
@@ -194,7 +194,7 @@ export default function Home() {
               <h1 className="text-4xl md:text-[3.2rem] font-black leading-[1.08] text-white tracking-tight">Coordinate<br /><span style={{ color: "#a8e6e0" }}>The Future.</span></h1>
               <p className="text-base text-white/75 font-medium max-w-md">A high-performance orchestration layer connecting NGOs, volunteers, and emergency infrastructure — natively, in real time.</p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/register">
+                <Link href="/login?mode=register">
                   <button className="h-[52px] px-8 rounded-xl bg-white text-[#34535E] font-black text-sm flex items-center gap-2 hover:scale-[1.04] transition-all">Deploy Profile <ArrowRight size={16} /></button>
                 </Link>
                 <Link href="/login">
