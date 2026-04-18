@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -189,10 +190,10 @@ export default function NGODashboard() {
               <CardContent className="px-12 pb-14 space-y-12">
                 <div className="flex items-center gap-8">
                    <div className="h-24 w-24 rounded-[2rem] bg-white/10 flex items-center justify-center text-5xl font-black border border-white/10 shadow-inner">
-                     {(user?.displayName || "N")[0]}
+                     {(user?.displayName || user?.email || "C")[0].toUpperCase()}
                    </div>
                    <div className="space-y-2">
-                     <p className="text-3xl font-black tracking-tighter leading-none">{user?.displayName}</p>
+                     <p className="text-3xl font-black tracking-tighter leading-none truncate max-w-[180px]">{user?.displayName || 'Authorized User'}</p>
                      <p className="text-[10px] font-black text-emerald-400 tracking-[0.4em] uppercase">Verified Operational Hub</p>
                    </div>
                 </div>
