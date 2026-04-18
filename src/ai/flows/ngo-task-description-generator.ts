@@ -5,7 +5,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { gemini15Flash } from '@genkit-ai/google-genai';
 
 const NGOTaskDescriptionGeneratorInputSchema = z.object({
   briefDescription: z.string().describe('A brief overview of the task.'),
@@ -30,7 +29,7 @@ export async function generateNGOTaskDescription(
 
 const prompt = ai.definePrompt({
   name: 'ngoTaskDescriptionPrompt',
-  model: gemini15Flash,
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: NGOTaskDescriptionGeneratorInputSchema },
   output: { schema: NGOTaskDescriptionGeneratorOutputSchema },
   prompt: `You are an expert humanitarian operations coordinator. Your goal is to expand a brief task summary into a professional, compelling, and highly detailed mission description.
