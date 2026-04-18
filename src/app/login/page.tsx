@@ -210,7 +210,7 @@ function AuthContent() {
             setIsPending(true);
             return;
           }
-          setAuthError("Node record not found. Contact support for vetting status.");
+          setAuthError("Node record not found. Please register if you haven't already.");
           return;
         }
 
@@ -227,15 +227,24 @@ function AuthContent() {
         }
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, 'registrations', userCredential.user.uid), {
+        
+        // Build registration data to avoid 'undefined' values which crash Firestore
+        const registrationData: any = {
           uid: userCredential.user.uid,
           email,
           role,
-          organizationName: role === 'ngo' ? formData.name : undefined,
-          firstName: role === 'volunteer' ? formData.name : undefined,
           proofUploaded: formData.proofUploaded,
           submittedAt: new Date().toISOString()
-        });
+        };
+
+        if (role === 'ngo') {
+          registrationData.organizationName = formData.name || "";
+        } else {
+          registrationData.firstName = formData.name || "";
+          registrationData.lastName = "";
+        }
+
+        await setDoc(doc(db, 'registrations', userCredential.user.uid), registrationData);
         setIsPending(true);
       }
     } catch (error: any) {
