@@ -9,7 +9,7 @@
     {
       "id": "login-bg",
       "description": "The mission control background image for the login terminal.",
-      "imageUrl": "https://picsum.photos/seed/resqbg/1200/800",
+      "imageUrl": "/bg.png",
       "imageHint": "mission control"
     },
     {
@@ -19,28 +19,28 @@
       "imageHint": "humanitarian relief"
     },
     {
-      "id": "task-food",
-      "description": "Food distribution task",
-      "imageUrl": "https://picsum.photos/seed/foodtask/600/400",
-      "imageHint": "food distribution"
+      "id": "how-it-works-hero",
+      "description": "Abstract visualization of emergency coordination network",
+      "imageUrl": "https://picsum.photos/seed/howitworks/1200/600",
+      "imageHint": "coordination network"
     },
     {
-      "id": "task-medical",
-      "description": "Medical assistance task",
-      "imageUrl": "https://picsum.photos/seed/medtask/600/400",
-      "imageHint": "medical assistance"
+      "id": "story-1",
+      "description": "Volunteers helping in a flood-affected area",
+      "imageUrl": "https://picsum.photos/seed/story1/800/600",
+      "imageHint": "flood relief"
     },
     {
-      "id": "ngo-profile",
-      "description": "NGO headquarters",
-      "imageUrl": "https://picsum.photos/seed/ngo/400/400",
-      "imageHint": "ngo building"
+      "id": "story-2",
+      "description": "Medical professionals providing aid in a camp",
+      "imageUrl": "https://picsum.photos/seed/story2/800/600",
+      "imageHint": "medical camp"
     },
     {
-      "id": "volunteer-avatar",
-      "description": "Volunteer profile picture",
-      "imageUrl": "https://picsum.photos/seed/volunteer/200/200",
-      "imageHint": "volunteer person"
+      "id": "story-3",
+      "description": "Logistics team coordinating supplies",
+      "imageUrl": "https://picsum.photos/seed/story3/800/600",
+      "imageHint": "relief logistics"
     }
   ]
 }

@@ -34,7 +34,7 @@ const AnimCounter = memo(function AnimCounter({ to, suffix = "" }: { to: number,
         setVal(Math.floor(start));
       }
     }, step);
-    return () => clearInterval(timer);
+    return () => setInterval(timer);
   }, [inView, to]);
   return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
 });
@@ -147,12 +147,6 @@ export default function Home() {
     { icon: Star,        color: "#b45309",  title: "Trust Scoring",         desc: "A points-based reputation system surfaces your most reliable, high-impact responders first." },
   ];
 
-  const steps = [
-    { step: "01", icon: Zap,          color: "#2B7B7B", title: "NGO Deploys a Task",   desc: "Organizations post needs with location, skills required, and urgency level in under a minute." },
-    { step: "02", icon: MapPin,       color: "#34535E", title: "Volunteers Are Matched", desc: "Our GPS engine instantly identifies and notifies the nearest certified volunteers." },
-    { step: "03", icon: CheckCircle,  color: "#57A498", title: "Mission Verified",       desc: "QR handoff confirms task completion. Points are awarded. Impact is logged permanently." },
-  ];
-
   return (
     <div
       className="relative min-h-screen overflow-x-hidden flex flex-col"
@@ -173,8 +167,8 @@ export default function Home() {
         </div>
         <div className="hidden sm:flex items-center gap-1 text-sm font-semibold text-slate-500">
           <a href="#features" className="px-3 py-2 rounded-lg hover:text-slate-800 hover:bg-white/80 transition-all">Features</a>
-          <a href="#how-it-works" className="px-3 py-2 rounded-lg hover:text-slate-800 hover:bg-white/80 transition-all">How it works</a>
-          <a href="#testimonials" className="px-3 py-2 rounded-lg hover:text-slate-800 hover:bg-white/80 transition-all">Stories</a>
+          <Link href="/how-it-works" className="px-3 py-2 rounded-lg hover:text-slate-800 hover:bg-white/80 transition-all">How it works</Link>
+          <Link href="/stories" className="px-3 py-2 rounded-lg hover:text-slate-800 hover:bg-white/80 transition-all">Stories</Link>
         </div>
         <div className="flex items-center gap-2.5">
           <Link href="/login" className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 sm:px-4 py-2 rounded-lg hover:bg-white/80">Sign In</Link>
@@ -226,7 +220,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features & Steps */}
+      {/* Features Section */}
       <section id="features" className="relative z-10 w-full max-w-6xl mx-auto px-6 py-16 space-y-20">
         <Reveal className="text-center space-y-4">
           <span className="text-xs font-black uppercase text-[#57A498] tracking-widest">Platform Capabilities</span>
