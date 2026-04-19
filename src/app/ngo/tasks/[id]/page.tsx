@@ -1,18 +1,20 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, MapPin, Clock, Users, ShieldCheck, Loader2, BarChart3, Edit3, Trash2 } from 'lucide-react';
+import { ChevronLeft, MapPin, Clock, Users, ShieldCheck, Loader2, BarChart3, Edit3, Trash2, Camera, X, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
-import { doc, getDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, deleteDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import jsQR from 'jsqr';
 
 export default function NGOTaskDetailsPage() {
   const params = useParams();
@@ -22,6 +24,14 @@ export default function NGOTaskDetailsPage() {
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  
+  // Scanner States
+  const [showScanner, setShowScanner] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (!params.id) return;
@@ -29,7 +39,6 @@ export default function NGOTaskDetailsPage() {
     const unsubscribe = onSnapshot(doc(db, 'tasks', params.id as string), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        // Security check: only creator can see full NGO detail
         if (user && data.creatorId !== user.uid) {
            router.push('/ngo/dashboard');
            return;
@@ -52,6 +61,126 @@ export default function NGOTaskDetailsPage() {
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
       setDeleting(false);
+    }
+  };
+
+  const startScanner = async () => {
+    setShowScanner(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setCameraActive(true);
+        requestAnimationFrame(scanFrame);
+      }
+    } catch (err) {
+      console.error("Camera access denied:", err);
+      toast({
+        variant: "destructive",
+        title: "Scanner Blocked",
+        description: "Please allow camera access to verify mission completion.",
+      });
+      setShowScanner(false);
+    }
+  };
+
+  const stopScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    setCameraActive(false);
+    setShowScanner(false);
+  };
+
+  const scanFrame = () => {
+    if (!cameraActive || !videoRef.current || !canvasRef.current || verifying) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA && context) {
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code) {
+        handleVerify(code.data);
+        return;
+      }
+    }
+    requestAnimationFrame(scanFrame);
+  };
+
+  const handleVerify = async (qrData: string) => {
+    if (verifying) return;
+    
+    // Check if it's a valid ResQMate code
+    // Format: RESQMATE_VERIFY:volunteerId:taskId
+    if (!qrData.startsWith('RESQMATE_VERIFY:')) {
+      return; // Ignore invalid codes silently during scan loop
+    }
+
+    setVerifying(true);
+    const [, volunteerId, taskId] = qrData.split(':');
+
+    if (taskId !== task.id) {
+      toast({
+        variant: "destructive",
+        title: "Task Mismatch",
+        description: "This QR code is for a different mission.",
+      });
+      setVerifying(false);
+      requestAnimationFrame(scanFrame);
+      return;
+    }
+
+    try {
+      const responseRef = doc(db, 'task_responses', `${volunteerId}_${taskId}`);
+      const responseSnap = await getDoc(responseRef);
+
+      if (!responseSnap.exists()) {
+        throw new Error("Mission response not found in registry.");
+      }
+
+      const responseData = responseSnap.data();
+      if (responseData.status === 'completed') {
+        throw new Error("This responder has already been verified.");
+      }
+
+      // Mark mission as complete for the volunteer
+      await updateDoc(responseRef, {
+        status: 'completed',
+        verifiedAt: new Date().toISOString()
+      });
+
+      // Award points to the volunteer
+      const points = task.pointsValue || 50;
+      await updateDoc(doc(db, 'users', volunteerId), {
+        points: increment(points),
+        tasksCompleted: increment(1),
+        hoursContributed: increment(2)
+      });
+
+      toast({
+        title: "Handoff Verified",
+        description: `Mission completed by responder. ${points} points awarded.`,
+      });
+      
+      stopScanner();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verification Failed",
+        description: error.message,
+      });
+      setVerifying(false);
+      requestAnimationFrame(scanFrame);
     }
   };
 
@@ -104,15 +233,15 @@ export default function NGOTaskDetailsPage() {
                 <h3 className="text-2xl font-black tracking-tight">Responder Engagement</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                <div className="p-6 bg-white/5 rounded-3xl border border-white/5 text-center">
                   <p className="text-3xl font-black">{task.volunteersJoined || 0}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">Confirmed</p>
                 </div>
-                <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                <div className="p-6 bg-white/5 rounded-3xl border border-white/5 text-center">
                   <p className="text-3xl font-black">{task.volunteersNeeded || 5}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">Target</p>
                 </div>
-                <div className="p-6 bg-primary/20 rounded-3xl border border-primary/20 flex flex-col justify-center">
+                <div className="p-6 bg-primary/20 rounded-3xl border border-primary/20 flex flex-col justify-center text-center">
                   <p className="text-xl font-black text-primary">{( (task.volunteersJoined || 0) / (task.volunteersNeeded || 5) * 100 ).toFixed(0)}%</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Fill Rate</p>
                 </div>
@@ -124,24 +253,34 @@ export default function NGOTaskDetailsPage() {
             <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden sticky top-28">
               <div className="h-3 bg-primary w-full" />
               <CardHeader className="p-8">
-                <CardTitle className="text-xl font-black">Mission Control</CardTitle>
-                <CardDescription className="font-bold">Operational Command Center</CardDescription>
+                <CardTitle className="text-xl font-black">Tactical Command</CardTitle>
+                <CardDescription className="font-bold">On-site verification portal.</CardDescription>
               </CardHeader>
               <CardContent className="px-8 pb-8 space-y-4">
-                <Button className="w-full h-16 rounded-[1.5rem] font-black bg-slate-900 hover:bg-black transition-all active:scale-95">
-                  <Edit3 className="mr-2 h-5 w-5" /> Edit Parameters
+                <Button 
+                  className="w-full h-20 rounded-[1.5rem] font-black bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                  onClick={startScanner}
+                >
+                  <Camera className="h-7 w-7" /> Verify Completion
                 </Button>
-                <Button variant="outline" className="w-full h-16 rounded-[1.5rem] font-black border-2 text-slate-700 hover:bg-slate-50">
-                  <BarChart3 className="mr-2 h-5 w-5" /> Detailed Analytics
+                
+                <div className="h-px bg-slate-100 my-2" />
+                
+                <Button variant="ghost" className="w-full h-14 rounded-xl font-bold text-slate-500 hover:text-slate-900">
+                  <Edit3 className="mr-2 h-4 w-4" /> Edit Parameters
                 </Button>
+                <Button variant="ghost" className="w-full h-14 rounded-xl font-bold text-slate-500 hover:text-slate-900">
+                  <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+                </Button>
+                
                 <div className="pt-4">
                   <Button 
                     variant="destructive" 
-                    className="w-full h-14 rounded-[1.5rem] font-black shadow-lg shadow-rose-100"
+                    className="w-full h-14 rounded-xl font-bold shadow-lg shadow-rose-50"
                     onClick={handleDelete}
                     disabled={deleting}
                   >
-                    {deleting ? <Loader2 className="animate-spin h-5 w-5" /> : <Trash2 className="mr-2 h-5 w-5" />}
+                    {deleting ? <Loader2 className="animate-spin h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
                     Terminate Mission
                   </Button>
                 </div>
@@ -161,6 +300,51 @@ export default function NGOTaskDetailsPage() {
           </div>
         </div>
       </main>
+
+      <Dialog open={showScanner} onOpenChange={setShowScanner}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none rounded-[2.5rem] bg-slate-950">
+          <DialogHeader className="p-8 pb-4 text-center">
+            <DialogTitle className="text-white text-2xl font-black tracking-tight">On-Site Verification</DialogTitle>
+          </DialogHeader>
+          <div className="relative aspect-square w-full bg-black flex items-center justify-center overflow-hidden">
+             {cameraActive ? (
+               <div className="relative w-full h-full">
+                 <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                 <div className="absolute inset-0 border-[40px] border-slate-950/40 pointer-events-none">
+                    <div className="w-full h-full border-2 border-primary/50 relative">
+                       <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                       <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                       <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                       <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-primary rounded-br-xl" />
+                       
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border-2 border-primary/20 rounded-3xl animate-pulse" />
+                    </div>
+                 </div>
+                 {verifying && (
+                   <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-6 text-center gap-4">
+                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                     <p className="font-black text-xl tracking-tight">Verifying Credentials...</p>
+                   </div>
+                 )}
+               </div>
+             ) : (
+               <div className="p-10 text-center space-y-6">
+                 <div className="h-20 w-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto">
+                   <Camera className="h-10 w-10 text-slate-500" />
+                 </div>
+                 <p className="text-slate-400 font-bold">Waiting for tactical optics...</p>
+               </div>
+             )}
+             <canvas ref={canvasRef} className="hidden" />
+          </div>
+          <div className="p-8 text-center space-y-6">
+            <p className="text-slate-500 text-sm font-medium">Position the volunteer&apos;s ResQMate QR code within the scanning frame.</p>
+            <Button variant="outline" className="w-full h-14 rounded-2xl font-black border-2 border-slate-800 text-slate-400 hover:text-white" onClick={stopScanner}>
+              <X className="mr-2 h-5 w-5" /> Cancel Scan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
