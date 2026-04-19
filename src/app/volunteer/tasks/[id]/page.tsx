@@ -6,13 +6,14 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, MapPin, Clock, Users, ShieldCheck, Loader2, Sparkles, BrainCircuit } from 'lucide-react';
+import { ChevronLeft, MapPin, Clock, Users, ShieldCheck, Loader2, Sparkles, BrainCircuit, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { doc, getDoc, updateDoc, increment, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { volunteerTaskMatchingNotification } from '@/ai/flows/volunteer-task-matching-notification';
+import { cn } from '@/lib/utils';
 
 export default function TaskDetailsPage() {
   const params = useParams();
@@ -70,6 +71,14 @@ export default function TaskDetailsPage() {
 
   const handleJoin = async () => {
     if (!user || !task) return;
+    if ((task.volunteersJoined || 0) >= (task.volunteersNeeded || 5)) {
+      toast({
+        variant: "destructive",
+        title: "Mission Full",
+        description: "This task has reached its maximum volunteer capacity.",
+      });
+      return;
+    }
     setProcessing(true);
     try {
       const docRef = doc(db, 'tasks', task.id);
@@ -125,6 +134,8 @@ export default function TaskDetailsPage() {
 
   if (!task) return <div className="p-10 text-center">Mission not found.</div>;
 
+  const isFull = (task.volunteersJoined || 0) >= (task.volunteersNeeded || 5);
+
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
       <SiteHeader userRole="volunteer" userName={user?.displayName || "Volunteer"} />
@@ -155,7 +166,12 @@ export default function TaskDetailsPage() {
                 <div className="flex flex-wrap gap-8 text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">
                   <span className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> {task.location}</span>
                   <span className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> MISSION START: T-MINUS {new Date(task.createdAt?.seconds * 1000).toLocaleDateString()}</span>
-                  <span className="flex items-center gap-2"><Users className="h-5 w-5 text-primary" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5} RESPONDERS</span>
+                  <span className={cn(
+                    "flex items-center gap-2",
+                    isFull ? "text-rose-500 font-black" : "text-primary"
+                  )}>
+                    <Users className="h-5 w-5" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5} {isFull ? "RESPONSES FULL" : "RESPONDERS"}
+                  </span>
                 </div>
               </CardHeader>
               <CardContent className="px-10 pb-10">
@@ -212,12 +228,25 @@ export default function TaskDetailsPage() {
                     <ShieldCheck className="h-6 w-6" />
                     <span className="font-black text-lg">MISSION SUCCESS</span>
                   </div>
+                ) : isFull ? (
+                  <div className="space-y-4">
+                    <div className="p-6 rounded-3xl bg-amber-50 text-amber-700 border-2 border-amber-100 flex items-center justify-center gap-3">
+                      <AlertTriangle className="h-6 w-6" />
+                      <span className="font-black text-lg uppercase">Capacity Full</span>
+                    </div>
+                    <p className="text-xs text-center text-slate-400 font-bold px-4 leading-relaxed">
+                      This deployment has met its personnel requirements. Browse other active sectors for open missions.
+                    </p>
+                    <Button variant="outline" className="w-full h-14 rounded-2xl font-black" asChild>
+                      <Link href="/volunteer/tasks">Browse Other Tasks</Link>
+                    </Button>
+                  </div>
                 ) : (
                   <div className="grid gap-4">
                     <Button 
                       className="w-full h-16 rounded-[1.5rem] text-lg font-black bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-95" 
                       onClick={handleJoin}
-                      disabled={processing || (task.volunteersJoined >= task.volunteersNeeded)}
+                      disabled={processing}
                     >
                       {processing ? <Loader2 className="animate-spin mr-2 h-6 w-6" /> : "Deploy to Site"}
                     </Button>

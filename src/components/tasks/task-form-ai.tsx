@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Loader2, Send, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Sparkles, Loader2, Send, Users, ShieldAlert } from 'lucide-react';
 import { generateNGOTaskDescription } from '@/ai/flows/ngo-task-description-generator';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -38,6 +37,7 @@ export function TaskFormAI() {
   const [location, setLocation] = useState('');
   const [skills, setSkills] = useState('');
   const [pointsValue, setPointsValue] = useState('50');
+  const [volunteersNeeded, setVolunteersNeeded] = useState('5');
   const { toast } = useToast();
   const router = useRouter();
 
@@ -105,7 +105,7 @@ export function TaskFormAI() {
         status: 'open',
         creatorId: user.uid,
         createdAt: serverTimestamp(),
-        volunteersNeeded: 5,
+        volunteersNeeded: parseInt(volunteersNeeded) || 5,
         volunteersJoined: 0,
         pointsValue: parseInt(pointsValue) || 50,
       });
@@ -164,7 +164,7 @@ export function TaskFormAI() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="category" className="text-slate-700 font-black px-1 text-xs tracking-widest">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
@@ -198,6 +198,18 @@ export function TaskFormAI() {
                   placeholder="e.g. City Hall Plaza" 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  required
+                  className="h-14 rounded-2xl border-slate-200 font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="volunteersNeeded" className="text-slate-700 font-black px-1 text-xs tracking-widest">Cap</Label>
+                <Input 
+                  id="volunteersNeeded" 
+                  type="number"
+                  placeholder="5" 
+                  value={volunteersNeeded}
+                  onChange={(e) => setVolunteersNeeded(e.target.value)}
                   required
                   className="h-14 rounded-2xl border-slate-200 font-bold"
                 />

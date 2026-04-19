@@ -5,12 +5,13 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Filter, Search, Loader2 } from 'lucide-react';
+import { MapPin, Filter, Search, Loader2, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
   "All Categories",
@@ -30,7 +31,6 @@ export default function BrowseTasks() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // Removed orderBy to avoid index requirement errors
     let q = query(
       collection(db, 'tasks'),
       where('status', '==', 'open')
@@ -45,7 +45,6 @@ export default function BrowseTasks() {
         id: doc.id,
         ...doc.data()
       })).sort((a: any, b: any) => {
-        // Client-side sorting
         const dateA = a.createdAt?.seconds || 0;
         const dateB = b.createdAt?.seconds || 0;
         return dateB - dateA;
@@ -110,37 +109,52 @@ export default function BrowseTasks() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredTasks.map(task => (
-              <Card key={task.id} className="border-none shadow-md hover:ring-2 ring-primary/20 transition-all bg-card flex flex-col">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold text-secondary border-secondary">
-                      {task.category || 'General'}
-                    </Badge>
-                    <Badge className={task.urgency === 'emergency' ? 'bg-destructive' : 'bg-secondary'}>
-                      {task.urgency}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-xl line-clamp-1">{task.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 flex-1 flex flex-col">
-                  <p className="text-sm text-muted-foreground line-clamp-3 min-h-[60px]">
-                    {task.description}
-                  </p>
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3 mr-1 text-primary" /> {task.location}
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {task.requiredSkills?.slice(0, 3).map((s: string) => (
-                      <Badge key={s} variant="secondary" className="text-[9px]">{s}</Badge>
-                    ))}
-                  </div>
-                  <Button className="w-full bg-primary hover:bg-primary/90 mt-auto" asChild>
-                    <Link href={`/volunteer/tasks/${task.id}`}>Apply to Help</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {filteredTasks.map(task => {
+              const isFull = (task.volunteersJoined || 0) >= (task.volunteersNeeded || 5);
+              return (
+                <Card key={task.id} className={cn(
+                  "border-none shadow-md transition-all bg-card flex flex-col",
+                  isFull ? "opacity-75" : "hover:ring-2 ring-primary/20"
+                )}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge variant="outline" className="text-[10px] uppercase font-bold text-secondary border-secondary">
+                        {task.category || 'General'}
+                      </Badge>
+                      <Badge className={cn(
+                        isFull ? "bg-slate-500" : task.urgency === 'emergency' ? 'bg-destructive' : 'bg-secondary'
+                      )}>
+                        {isFull ? "MISSION FULL" : task.urgency}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-xl line-clamp-1">{task.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 flex-1 flex flex-col">
+                    <p className="text-sm text-muted-foreground line-clamp-3 min-h-[60px]">
+                      {task.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3 mr-1 text-primary" /> {task.location}
+                      </div>
+                      <div className="flex items-center text-[10px] font-black uppercase text-slate-400">
+                        <Users className="h-3 w-3 mr-1" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {task.requiredSkills?.slice(0, 3).map((s: string) => (
+                        <Badge key={s} variant="secondary" className="text-[9px]">{s}</Badge>
+                      ))}
+                    </div>
+                    <Button className="w-full bg-primary hover:bg-primary/90 mt-auto" asChild disabled={isFull}>
+                      <Link href={`/volunteer/tasks/${task.id}`}>
+                        {isFull ? "Mission Capacity Reached" : "Apply to Help"}
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </main>
