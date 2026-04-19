@@ -15,6 +15,7 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import jsQR from 'jsqr';
+import { cn } from '@/lib/utils';
 
 export default function NGOTaskDetailsPage() {
   const params = useParams();
