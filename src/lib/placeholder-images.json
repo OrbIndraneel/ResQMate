@@ -26,21 +26,69 @@
     },
     {
       "id": "story-1",
-      "description": "Volunteers helping in a flood-affected area",
+      "description": "Flood rescue operation in Darbhanga",
       "imageUrl": "https://picsum.photos/seed/story1/800/600",
-      "imageHint": "flood relief"
+      "imageHint": "flood rescue"
     },
     {
       "id": "story-2",
-      "description": "Medical professionals providing aid in a camp",
+      "description": "AI-guided first aid in landslide zone",
       "imageUrl": "https://picsum.photos/seed/story2/800/600",
-      "imageHint": "medical camp"
+      "imageHint": "medical first-aid"
     },
     {
       "id": "story-3",
-      "description": "Logistics team coordinating supplies",
+      "description": "Resource mapping and logistics truck coordination",
       "imageUrl": "https://picsum.photos/seed/story3/800/600",
-      "imageHint": "relief logistics"
+      "imageHint": "logistics truck"
+    },
+    {
+      "id": "story-4",
+      "description": "Family reunification at a cyclone shelter",
+      "imageUrl": "https://picsum.photos/seed/story4/800/600",
+      "imageHint": "shelter family"
+    },
+    {
+      "id": "story-5",
+      "description": "Emergency SMS communication during forest fires",
+      "imageUrl": "https://picsum.photos/seed/story5/800/600",
+      "imageHint": "forest fire"
+    },
+    {
+      "id": "story-6",
+      "description": "Predictive landslide mapping dashboard",
+      "imageUrl": "https://picsum.photos/seed/story6/800/600",
+      "imageHint": "nasa prediction"
+    },
+    {
+      "id": "story-7",
+      "description": "Rescue team responding to social media SOS",
+      "imageUrl": "https://picsum.photos/seed/story7/800/600",
+      "imageHint": "rescue basement"
+    },
+    {
+      "id": "story-8",
+      "description": "Coordinated chemical leak evacuation",
+      "imageUrl": "https://picsum.photos/seed/story8/800/600",
+      "imageHint": "evacuation team"
+    },
+    {
+      "id": "story-9",
+      "description": "Verification of community safety bulletins",
+      "imageUrl": "https://picsum.photos/seed/story9/800/600",
+      "imageHint": "community bulletin"
+    },
+    {
+      "id": "story-10",
+      "description": "Medical triage in a crowded disaster shelter",
+      "imageUrl": "https://picsum.photos/seed/story10/800/600",
+      "imageHint": "medical triage"
+    },
+    {
+      "id": "story-11",
+      "description": "Post-disaster audit and impact reporting",
+      "imageUrl": "https://picsum.photos/seed/story11/800/600",
+      "imageHint": "impact report"
     }
   ]
 }
