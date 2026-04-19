@@ -229,10 +229,15 @@ function AuthContent() {
           proofUploaded: formData.proofUploaded,
           proofImage: formData.proofImage || "",
           submittedAt: new Date().toISOString(),
-          organizationName: role === 'ngo' ? (formData.name || "") : undefined,
-          firstName: role === 'volunteer' ? (formData.name || "") : undefined,
           lastName: ""
         };
+
+        if (role === 'ngo') {
+          registrationData.organizationName = formData.name || "";
+        } else {
+          registrationData.firstName = formData.name || "";
+        }
+
         await setDoc(doc(db, 'registrations', userCredential.user.uid), registrationData);
         setIsPending(true);
       }
@@ -250,7 +255,6 @@ function AuthContent() {
     setGeneratedResetOtp(mockOtp);
     
     try {
-      // Use custom SMTP action
       await sendPasswordResetOTP(resetEmail, mockOtp);
       setResetStep('otp');
       toast({ title: "Code Sent", description: "Check your email for the reset code." });
@@ -264,14 +268,10 @@ function AuthContent() {
   const handleVerifyResetOtp = async () => {
     if (resetOtp === generatedResetOtp) {
       setResetStep('success');
-      // In a real app, we would now call sendPasswordResetEmail(auth, resetEmail)
-      // but the user wants the WHOLE flow via their SMTP. 
-      // For the prototype, we simulate the success of the handshake.
       try {
         await sendPasswordResetEmail(auth, resetEmail);
         toast({ title: "Authorized", description: "Identity verified. Security link dispatched." });
       } catch (e) {
-        // Fallback or ignore for prototype
       }
     } else {
       toast({ variant: "destructive", title: "Invalid Code", description: "The code entered is incorrect." });
