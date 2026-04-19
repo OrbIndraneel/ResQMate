@@ -72,7 +72,6 @@ export default function NGOTaskDetailsPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         setCameraActive(true);
-        requestAnimationFrame(scanFrame);
       }
     } catch (err) {
       console.error("Camera access denied:", err);
@@ -85,46 +84,51 @@ export default function NGOTaskDetailsPage() {
     }
   };
 
+  useEffect(() => {
+    let request: number;
+    const scan = () => {
+      if (cameraActive && videoRef.current && canvasRef.current && !verifying) {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA && context) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+          });
+
+          if (code) {
+            handleVerify(code.data);
+          }
+        }
+      }
+      request = requestAnimationFrame(scan);
+    };
+
+    if (cameraActive) {
+      request = requestAnimationFrame(scan);
+    }
+
+    return () => cancelAnimationFrame(request);
+  }, [cameraActive, verifying]);
+
   const stopScanner = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
     setCameraActive(false);
     setShowScanner(false);
-  };
-
-  const scanFrame = () => {
-    if (!cameraActive || !videoRef.current || !canvasRef.current || verifying) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA && context) {
-      canvas.height = video.videoHeight;
-      canvas.width = video.videoWidth;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
-      });
-
-      if (code) {
-        handleVerify(code.data);
-        return;
-      }
-    }
-    requestAnimationFrame(scanFrame);
+    setVerifying(false);
   };
 
   const handleVerify = async (qrData: string) => {
     if (verifying) return;
     
-    // Check if it's a valid ResQMate code
-    // Format: RESQMATE_VERIFY:volunteerId:taskId
-    if (!qrData.startsWith('RESQMATE_VERIFY:')) {
-      return; // Ignore invalid codes silently during scan loop
-    }
+    if (!qrData.startsWith('RESQMATE_VERIFY:')) return;
 
     setVerifying(true);
     const [, volunteerId, taskId] = qrData.split(':');
@@ -136,7 +140,6 @@ export default function NGOTaskDetailsPage() {
         description: "This QR code is for a different mission.",
       });
       setVerifying(false);
-      requestAnimationFrame(scanFrame);
       return;
     }
 
@@ -153,13 +156,11 @@ export default function NGOTaskDetailsPage() {
         throw new Error("This responder has already been verified.");
       }
 
-      // Mark mission as complete for the volunteer
       await updateDoc(responseRef, {
         status: 'completed',
         verifiedAt: new Date().toISOString()
       });
 
-      // Award points to the volunteer
       const points = task.pointsValue || 50;
       await updateDoc(doc(db, 'users', volunteerId), {
         points: increment(points),
@@ -180,7 +181,6 @@ export default function NGOTaskDetailsPage() {
         description: error.message,
       });
       setVerifying(false);
-      requestAnimationFrame(scanFrame);
     }
   };
 
@@ -338,7 +338,7 @@ export default function NGOTaskDetailsPage() {
              <canvas ref={canvasRef} className="hidden" />
           </div>
           <div className="p-8 text-center space-y-6">
-            <p className="text-slate-500 text-sm font-medium">Position the volunteer&apos;s ResQMate QR code within the scanning frame.</p>
+            <p className="text-slate-500 text-sm font-medium">Position the volunteer's ResQMate QR code within the scanning frame.</p>
             <Button variant="outline" className="w-full h-14 rounded-2xl font-black border-2 border-slate-800 text-slate-400 hover:text-white" onClick={stopScanner}>
               <X className="mr-2 h-5 w-5" /> Cancel Scan
             </Button>

@@ -27,7 +27,6 @@ export default function TaskDetailsPage() {
   const [processing, setProcessing] = useState(false);
   const [aiMatch, setAiMatch] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [isJoined, setIsJoined] = useState(false);
   const [missionData, setMissionData] = useState<any>(null);
 
   useEffect(() => {
@@ -48,10 +47,8 @@ export default function TaskDetailsPage() {
     
     const unsubscribe = onSnapshot(doc(db, 'task_responses', `${user.uid}_${params.id}`), (docSnap) => {
       if (docSnap.exists()) {
-        setIsJoined(true);
         setMissionData(docSnap.data());
       } else {
-        setIsJoined(false);
         setMissionData(null);
       }
     });
@@ -61,7 +58,7 @@ export default function TaskDetailsPage() {
 
   useEffect(() => {
     const getAiMatch = async () => {
-      if (!user || !task || aiMatch || aiLoading) return;
+      if (!user || !task || aiMatch || aiLoading || missionData) return;
       
       setAiLoading(true);
       try {
@@ -86,8 +83,8 @@ export default function TaskDetailsPage() {
       }
     };
 
-    if (task && !isJoined) getAiMatch();
-  }, [task, user, isJoined, aiMatch, aiLoading]);
+    if (task && !missionData) getAiMatch();
+  }, [task, user, missionData, aiMatch, aiLoading]);
 
   const handleJoin = async () => {
     if (!user || !task) return;
@@ -107,7 +104,7 @@ export default function TaskDetailsPage() {
       await setDoc(responseRef, {
         taskId: task.id,
         volunteerId: user.uid,
-        volunteerName: user.displayName || 'Responder',
+        volunteerName: user.displayName || user.email || 'Responder',
         status: 'active',
         qrPayload,
         joinedAt: new Date().toISOString()
@@ -143,6 +140,7 @@ export default function TaskDetailsPage() {
   if (!task) return <div className="p-10 text-center">Mission not found.</div>;
 
   const isFull = (task.volunteersJoined || 0) >= (task.volunteersNeeded || 5);
+  const isJoined = !!missionData;
   const isCompleted = missionData?.status === 'completed';
 
   return (
@@ -177,9 +175,9 @@ export default function TaskDetailsPage() {
                   <span className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> MISSION START: T-MINUS {new Date(task.createdAt?.seconds * 1000).toLocaleDateString()}</span>
                   <span className={cn(
                     "flex items-center gap-2",
-                    isFull ? "text-rose-500 font-black" : "text-primary"
+                    isFull && !isJoined ? "text-rose-500 font-black" : "text-primary"
                   )}>
-                    <Users className="h-5 w-5" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5} {isFull ? "RESPONSES FULL" : "RESPONDERS"}
+                    <Users className="h-5 w-5" /> {task.volunteersJoined || 0}/{task.volunteersNeeded || 5} {(isFull && !isJoined) ? "RESPONSES FULL" : "RESPONDERS"}
                   </span>
                 </div>
               </CardHeader>
@@ -255,12 +253,18 @@ export default function TaskDetailsPage() {
                 ) : isJoined ? (
                   <div className="space-y-8">
                     <div className="flex justify-center p-6 bg-white rounded-[2rem] shadow-inner border-4 border-slate-50">
-                      <QRCodeSVG 
-                        value={missionData?.qrPayload || ""} 
-                        size={200}
-                        level="H"
-                        includeMargin={true}
-                      />
+                      {missionData?.qrPayload ? (
+                        <QRCodeSVG 
+                          value={missionData.qrPayload} 
+                          size={200}
+                          level="H"
+                          includeMargin={true}
+                        />
+                      ) : (
+                        <div className="h-[200px] w-[200px] flex items-center justify-center">
+                          <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-4">
                       <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
