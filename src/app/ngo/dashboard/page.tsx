@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, Loader2, TrendingUp, Calendar, Heart, Shield } from 'lucide-react';
+import { Plus, CheckCircle, AlertCircle, Clock, Users, ArrowRight, TrendingUp, Calendar, Heart, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
@@ -139,7 +139,7 @@ export default function NGODashboard() {
                 </div>
                 <div className="space-y-3">
                   <h3 className="text-3xl font-black text-slate-950">No Missions Active</h3>
-                  <p className="text-slate-500 font-medium max-w-sm mx-auto leading-relaxed text-lg">Your operational registry is empty. Deploy your first mission to begin coordinating responders.</p>
+                  <p className="text-slate-500 font-medium max-sm mx-auto leading-relaxed text-lg">Your operational registry is empty. Deploy your first mission to begin coordinating responders.</p>
                 </div>
                 <Link href="/ngo/tasks/new">
                   <Button variant="secondary" className="rounded-2xl h-16 px-12 text-lg font-black shadow-lg">Begin Dispatch</Button>
@@ -169,7 +169,7 @@ export default function NGODashboard() {
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" className="h-16 w-16 rounded-[1.5rem] bg-slate-50 hover:bg-primary/10 transition-all" asChild>
-                        <Link href={`/volunteer/tasks/${task.id}`}>
+                        <Link href={`/ngo/tasks/${task.id}`}>
                           <ArrowRight className="h-8 w-8 text-slate-300 group-hover:text-primary" />
                         </Link>
                       </Button>
