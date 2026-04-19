@@ -24,6 +24,7 @@ export default function NGOTaskDetailsPage() {
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   
   // Scanner States
   const [showScanner, setShowScanner] = useState(false);
@@ -64,7 +65,27 @@ export default function NGOTaskDetailsPage() {
     }
   };
 
+  const handleFinalizeMission = async () => {
+    if (!confirm("Mark this mission as officially completed? This will lock the deployment registry.")) return;
+    setCompleting(true);
+    try {
+      await updateDoc(doc(db, 'tasks', task.id), {
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      });
+      toast({ title: "Mission Finalized", description: "The task status has been updated to completed across the network." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   const startScanner = async () => {
+    if (task.status === 'completed') {
+      toast({ variant: "destructive", title: "Mission Closed", description: "Cannot verify responders for a completed mission." });
+      return;
+    }
     setShowScanner(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -187,6 +208,8 @@ export default function NGOTaskDetailsPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin h-10 w-10 text-primary opacity-20" /></div>;
   if (!task) return <div className="p-10 text-center">Mission dossier not found.</div>;
 
+  const isCompleted = task.status === 'completed';
+
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
       <SiteHeader userRole="ngo" userName={user?.displayName || "NGO Admin"} />
@@ -206,7 +229,10 @@ export default function NGOTaskDetailsPage() {
                   <Badge variant={task.urgency === 'emergency' ? 'destructive' : 'secondary'} className="uppercase px-4 py-1 rounded-lg font-black tracking-widest text-[10px]">
                     {task.urgency}
                   </Badge>
-                  <Badge className="bg-primary/10 text-primary border-none px-4 py-2 rounded-xl font-black">
+                  <Badge className={cn(
+                    "border-none px-4 py-2 rounded-xl font-black",
+                    isCompleted ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"
+                  )}>
                     {task.status.toUpperCase()}
                   </Badge>
                 </div>
@@ -251,20 +277,34 @@ export default function NGOTaskDetailsPage() {
 
           <div className="lg:col-span-4 space-y-8">
             <Card className="border-none shadow-2xl rounded-[2.5rem] overflow-hidden sticky top-28">
-              <div className="h-3 bg-primary w-full" />
+              <div className={cn("h-3 w-full", isCompleted ? "bg-emerald-500" : "bg-primary")} />
               <CardHeader className="p-8">
                 <CardTitle className="text-xl font-black">Tactical Command</CardTitle>
-                <CardDescription className="font-bold">On-site verification portal.</CardDescription>
+                <CardDescription className="font-bold">
+                  {isCompleted ? "This mission is finalized." : "On-site verification portal."}
+                </CardDescription>
               </CardHeader>
               <CardContent className="px-8 pb-8 space-y-4">
                 <Button 
-                  className="w-full h-20 rounded-[1.5rem] font-black bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                  className="w-full h-20 rounded-[1.5rem] font-black bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   onClick={startScanner}
+                  disabled={isCompleted}
                 >
                   <Camera className="h-7 w-7" /> Verify Completion
                 </Button>
                 
                 <div className="h-px bg-slate-100 my-2" />
+                
+                {!isCompleted && (
+                   <Button 
+                    className="w-full h-14 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg active:scale-95 transition-all"
+                    onClick={handleFinalizeMission}
+                    disabled={completing}
+                  >
+                    {completing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                    Finalize Mission
+                  </Button>
+                )}
                 
                 <Button variant="ghost" className="w-full h-14 rounded-xl font-bold text-slate-500 hover:text-slate-900">
                   <Edit3 className="mr-2 h-4 w-4" /> Edit Parameters
