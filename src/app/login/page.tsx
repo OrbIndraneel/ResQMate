@@ -321,7 +321,18 @@ function AuthContent() {
 
       <div className="relative hidden lg:flex flex-col justify-between bg-primary p-12 overflow-hidden">
         <Link href="/" className="relative z-20 flex items-center gap-4 group">
-          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg bg-white/10 backdrop-blur-sm flex items-center justify-center font-black text-white">R</div>
+          <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg bg-white/10 backdrop-blur-sm flex items-center justify-center font-black">
+            {logoAsset && (
+              <Image 
+                src={logoAsset.imageUrl} 
+                alt="Logo" 
+                width={40} 
+                height={40} 
+                className="object-cover"
+                data-ai-hint={logoAsset.imageHint}
+              />
+            )}
+          </div>
           <span className="font-black text-2xl tracking-tighter text-white">ResQMate</span>
         </Link>
 
