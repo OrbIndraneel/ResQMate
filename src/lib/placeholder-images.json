@@ -7,6 +7,12 @@
       "imageHint": "humanitarian logo"
     },
     {
+      "id": "login-bg",
+      "description": "The mission control background image for the login terminal.",
+      "imageUrl": "https://picsum.photos/seed/resqbg/1200/800",
+      "imageHint": "mission control"
+    },
+    {
       "id": "hero-bg",
       "description": "Humanitarian relief efforts background",
       "imageUrl": "https://picsum.photos/seed/resqhero/1200/600",

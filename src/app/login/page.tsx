@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 const logoAsset = PlaceHolderImages.find(img => img.id === 'main-logo');
+const bgAsset = PlaceHolderImages.find(img => img.id === 'login-bg');
 
 // Animated Pupil Component
 const Pupil = ({ size = 12, maxDistance = 5, pupilColor = "black", forceLookX, forceLookY }: any) => {
@@ -318,7 +319,19 @@ function AuthContent() {
         <Button variant="outline" className="rounded-2xl border-2 font-black gap-2 bg-white/80 backdrop-blur-sm shadow-xl"><ArrowLeft className="h-4 w-4" /> Back to Home</Button>
       </Link>
 
-      <div className="relative hidden lg:flex flex-col justify-between bg-[#1A56DB] p-12 overflow-hidden">
+      <div className="relative hidden lg:flex flex-col justify-between p-12 overflow-hidden bg-slate-900">
+        {/* Background Image */}
+        {bgAsset && (
+          <Image 
+            src={bgAsset.imageUrl} 
+            alt="Mission Control Background" 
+            fill 
+            className="object-cover opacity-60 mix-blend-overlay"
+            priority
+            data-ai-hint={bgAsset.imageHint}
+          />
+        )}
+
         <Link href="/" className="relative z-20 flex items-center gap-4 group">
           <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg bg-white/10 backdrop-blur-sm flex items-center justify-center font-black">
             {logoAsset && (
