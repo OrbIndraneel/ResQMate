@@ -426,7 +426,7 @@ function AuthContent() {
               </div>
               <DialogTitle className="text-2xl font-black">Key Recovery</DialogTitle>
             </div>
-            <DialogDescription className="text-slate-400 font-medium">Verify your identity via secure SMTP channel.</DialogDescription>
+            <DialogDescription className="text-slate-400 font-medium">Verify your email to continue.</DialogDescription>
           </DialogHeader>
 
           <div className="p-10">
