@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
@@ -319,7 +318,7 @@ function AuthContent() {
         <Button variant="outline" className="rounded-2xl border-2 font-black gap-2 bg-white/80 backdrop-blur-sm shadow-xl"><ArrowLeft className="h-4 w-4" /> Back to Home</Button>
       </Link>
 
-      <div className="relative hidden lg:flex flex-col justify-between bg-primary p-12 overflow-hidden">
+      <div className="relative hidden lg:flex flex-col justify-between bg-[#1A56DB] p-12 overflow-hidden">
         <Link href="/" className="relative z-20 flex items-center gap-4 group">
           <div className="h-10 w-10 rounded-xl overflow-hidden shadow-lg bg-white/10 backdrop-blur-sm flex items-center justify-center font-black">
             {logoAsset && (
@@ -456,6 +455,20 @@ function AuthContent() {
       <div className="flex flex-col items-center justify-center p-8 bg-white relative overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="text-center mb-12">
+            <div className="flex justify-center mb-6">
+               <div className="h-14 w-14 rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-50 ring-4 ring-primary/10">
+                  {logoAsset && (
+                    <Image 
+                      src={logoAsset.imageUrl} 
+                      alt="ResQMate" 
+                      width={56} 
+                      height={56} 
+                      className="object-cover"
+                      data-ai-hint={logoAsset.imageHint}
+                    />
+                  )}
+               </div>
+            </div>
             <h1 className="text-4xl font-black tracking-tighter mb-3">{isLogin ? "Secure Link" : "Join Network"}</h1>
             <p className="text-slate-500 font-bold">{isLogin ? "Authorized Personnel Only" : "Registering new operational node"}</p>
           </div>
