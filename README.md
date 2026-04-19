@@ -21,7 +21,7 @@ To enable real OTP emails for the Developer Admin Portal using Gmail:
    ```env
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=465
-   SMTP_USER=your-email@gmail.com
+   SMTP_USER=resqmate423@gmail.com
    SMTP_PASS=your-16-char-app-password
    SMTP_SECURE=true
    ```
@@ -29,6 +29,7 @@ To enable real OTP emails for the Developer Admin Portal using Gmail:
 ## Admin Portal Access
 The developer portal is located at `/admin/login`. 
 Authorized emails:
+- resqmate423@gmail.com
 - indraneelmandal0387@gmail.com
 - tanviacharya569@gmail.com
 - krishxtech@gmail.com

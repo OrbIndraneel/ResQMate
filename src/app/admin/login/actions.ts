@@ -4,6 +4,7 @@
 import nodemailer from 'nodemailer';
 
 const ADMIN_WHITELIST = [
+  "resqmate423@gmail.com",
   "indraneelmandal0387@gmail.com",
   "tanviacharya569@gmail.com",
   "krishxtech@gmail.com"

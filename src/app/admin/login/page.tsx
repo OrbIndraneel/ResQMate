@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { sendEmailOTP } from './actions';
 
 const ADMIN_WHITELIST = [
+  "resqmate423@gmail.com",
   "indraneelmandal0387@gmail.com",
   "tanviacharya569@gmail.com",
   "krishxtech@gmail.com"
@@ -160,7 +162,7 @@ export default function AdminLoginPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="admin@resqmate.dev" 
+                  placeholder="resqmate423@gmail.com" 
                   required 
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
                   value={email}
