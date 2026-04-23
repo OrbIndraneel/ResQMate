@@ -29,7 +29,8 @@ export async function generateNGOTaskDescription(
 
 const prompt = ai.definePrompt({
   name: 'ngoTaskDescriptionPrompt',
-  model: 'googleai/gemini-1.5-flash-latest',
+  // Reconfigured to use Vertex AI (Firebase) to remove the API key dependency
+  model: 'vertexai/gemini-1.5-flash', 
   input: { schema: NGOTaskDescriptionGeneratorInputSchema },
   output: { schema: NGOTaskDescriptionGeneratorOutputSchema },
   prompt: `You are an expert humanitarian operations coordinator. Your goal is to expand a brief task summary into a professional, compelling, and highly detailed mission description.
