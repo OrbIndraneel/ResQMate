@@ -3,10 +3,6 @@
 /**
  * @fileOverview This file defines a Genkit flow to match volunteers with relief tasks
  * and generate a notification message if a suitable match is found.
- *
- * - volunteerTaskMatchingNotification - A function that handles the volunteer-task matching process.
- * - VolunteerTaskMatchingNotificationInput - The input type for the volunteerTaskMatchingNotification function.
- * - VolunteerTaskMatchingNotificationOutput - The return type for the volunteerTaskMatchingNotification function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -59,7 +55,7 @@ export async function volunteerTaskMatchingNotification(
 
 const prompt = ai.definePrompt({
   name: 'volunteerTaskMatchingNotificationPrompt',
-  // Reconfigured to use Google AI Gemini model with API key
+  // Using the scoped model identifier for Google AI plugin
   model: 'googleai/gemini-1.5-flash',
   input: {schema: VolunteerTaskMatchingNotificationInputSchema},
   output: {schema: VolunteerTaskMatchingNotificationOutputSchema},

@@ -30,7 +30,7 @@ export async function generateNGOTaskDescription(
 
 const prompt = ai.definePrompt({
   name: 'ngoTaskDescriptionPrompt',
-  // Reconfigured to use Google AI Gemini model with API key
+  // Using the scoped model identifier for Google AI plugin
   model: 'googleai/gemini-1.5-flash', 
   input: { schema: NGOTaskDescriptionGeneratorInputSchema },
   output: { schema: NGOTaskDescriptionGeneratorOutputSchema },
