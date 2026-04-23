@@ -55,7 +55,6 @@ export async function volunteerTaskMatchingNotification(
 
 const prompt = ai.definePrompt({
   name: 'volunteerTaskMatchingNotificationPrompt',
-  // Using the scoped model identifier for Google AI plugin
   model: 'googleai/gemini-1.5-flash',
   input: {schema: VolunteerTaskMatchingNotificationInputSchema},
   output: {schema: VolunteerTaskMatchingNotificationOutputSchema},

@@ -2,6 +2,10 @@
 'use server';
 /**
  * @fileOverview An AI assistant that generates comprehensive task descriptions for NGO Admins.
+ *
+ * - generateNGOTaskDescription - A function that handles the task description generation process.
+ * - NGOTaskDescriptionGeneratorInput - The input type for the generator.
+ * - NGOTaskDescriptionGeneratorOutput - The return type for the generator.
  */
 
 import { ai } from '@/ai/genkit';
@@ -22,6 +26,9 @@ const NGOTaskDescriptionGeneratorOutputSchema = z.object({
 });
 export type NGOTaskDescriptionGeneratorOutput = z.infer<typeof NGOTaskDescriptionGeneratorOutputSchema>;
 
+/**
+ * Generates a detailed task description using Genkit AI.
+ */
 export async function generateNGOTaskDescription(
   input: NGOTaskDescriptionGeneratorInput
 ): Promise<NGOTaskDescriptionGeneratorOutput> {
@@ -30,8 +37,7 @@ export async function generateNGOTaskDescription(
 
 const prompt = ai.definePrompt({
   name: 'ngoTaskDescriptionPrompt',
-  // Using the scoped model identifier for Google AI plugin
-  model: 'googleai/gemini-1.5-flash', 
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: NGOTaskDescriptionGeneratorInputSchema },
   output: { schema: NGOTaskDescriptionGeneratorOutputSchema },
   prompt: `You are an expert humanitarian operations coordinator. Your goal is to expand a brief task summary into a professional, compelling, and highly detailed mission description.
